@@ -12,6 +12,12 @@
             </q-checkbox>
           </div>
           <div class="row q-mt-md" v-if="isAuthModeCredentialsSetByAdmin">
+            <div class="col-2 q-my-sm" v-t="'COREWEBCLIENT.LABEL_EMAIL'"></div>
+            <div class="col-5">
+              <q-input outlined dense bg-color="white" v-model="emailId" ref="emailId" @keyup.enter="save" />
+            </div>
+          </div>
+          <div class="row q-mt-md" v-if="isAuthModeCredentialsSetByAdmin">
             <div class="col-2 q-my-sm" v-t="'COREWEBCLIENT.LABEL_LOGIN'"></div>
             <div class="col-5">
               <q-input outlined dense bg-color="white" v-model="login" ref="login" @keyup.enter="save" />
@@ -95,6 +101,7 @@ export default {
       enableIframeApp: false,
       enableIframeAppFromServer: false,
       isAuthModeCredentialsSetByAdmin: settings.isAuthModeCredentialsSetByAdmin(),
+      emailId: '',
       login: '',
       password: '',
       quota: 100,
@@ -166,6 +173,7 @@ export default {
           Quota: typesUtils.pInt(this.quota),
         }
         if (this.isAuthModeCredentialsSetByAdmin) {
+          parameters.EmailId = this.emailId.trim()
           parameters.Login = this.login.trim()
           if (this.password !== FAKE_PASS) {
             parameters.Password = this.password.trim()
@@ -215,6 +223,7 @@ export default {
             if (result) {
               this.enableIframeApp = result.EnableModule
               this.enableIframeAppFromServer = result.EnableModule
+              this.emailId = result.EmailId || ''
               this.login = result.Login || ''
               this.password = result.HasPassword ? FAKE_PASS : ''
               this.quota = result.Quota || 0

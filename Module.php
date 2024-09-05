@@ -185,6 +185,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
             $sEmail = $oUser->getExtendedProp(self::GetName() . '::Email');
             return array(
                 'EnableModule' => $this->isEnabledForEntity($oUser),
+                'EmailId' => $sEmail,
                 'Login' => $sLogin,
                 'HasPassword' => (bool) $oUser->getExtendedProp(self::GetName() . '::Password'),
                 'Quota' => (int) $this->oManager->getQuota($sEmail),
@@ -201,7 +202,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
      * @param bool $EnableModule
      * @return bool
      */
-    public function UpdatePerUserSettings($UserId, $EnableModule, $Login = '', $Password = '', $Quota = null)
+    public function UpdatePerUserSettings($UserId, $EnableModule, $EmailId = '', $Login = '', $Password = '', $Quota = null)
     {
         \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
 
@@ -211,31 +212,35 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         if ($oUser) {
             $this->updateEnabledForEntity($oUser, $EnableModule);
 
-            $sEmail = $oUser->getExtendedProp(self::GetName() . '::Email');
-            if ($sEmail) {
-                $bNeedUpdateUser = false;
-                $sCurrentLogin = $oUser->getExtendedProp(self::GetName() . '::Login');
-                if (!empty($Login) && $sCurrentLogin !== $Login) {
-                    // TODO save new login (email) in Seafile
-                    // https://seafile-api.readme.io/reference/put_api-v2-1-admin-update-user-ccnet-email
-                    $oUser->setExtendedProp(self::GetName() . '::Login', $Login);
-                    $bNeedUpdateUser = true;
-                }
-    
-                $sCurrentPassword = \Aurora\System\Utils::DecryptValue($oUser->getExtendedProp(self::GetName() . '::Password'));
-                if (!empty($Password) && $sCurrentPassword !== $Password) {
-                    $oUser->setExtendedProp(self::GetName() . '::Password', \Aurora\System\Utils::EncryptValue($Password));
-                    $bNeedUpdateUser = true;
-                }
-    
-                if ($bNeedUpdateUser) {
-                    $bResult = \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
-                }
-    
-                if (is_numeric($Quota)) {
-                    $bResult = ($bNeedUpdateUser && $bResult || !$bNeedUpdateUser) && $this->oManager->setQuota($sEmail, (int) $Quota);
-                }
-            } 
+            $bNeedUpdateUser = false;
+            $sCurrentEmail = $oUser->getExtendedProp(self::GetName() . '::Email');
+            if (!empty($EmailId) && $sCurrentEmail !== $Login) {
+                $oUser->setExtendedProp(self::GetName() . '::Email', $EmailId);
+                $bNeedUpdateUser = true;
+            }
+
+            $sCurrentLogin = $oUser->getExtendedProp(self::GetName() . '::Login');
+            if (!empty($Login) && $sCurrentLogin !== $Login) {
+                // TODO save new login (email) in Seafile
+                // https://seafile-api.readme.io/reference/put_api-v2-1-admin-update-user-ccnet-email
+                $oUser->setExtendedProp(self::GetName() . '::Login', $Login);
+                $bNeedUpdateUser = true;
+            }
+
+            $sCurrentPassword = \Aurora\System\Utils::DecryptValue($oUser->getExtendedProp(self::GetName() . '::Password'));
+            if (!empty($Password) && $sCurrentPassword !== $Password) {
+                $oUser->setExtendedProp(self::GetName() . '::Password', \Aurora\System\Utils::EncryptValue($Password));
+                $bNeedUpdateUser = true;
+            }
+
+            if ($bNeedUpdateUser) {
+                $bResult = \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+            }
+
+            if (is_numeric($Quota)) {
+                $sEmail = $oUser->getExtendedProp(self::GetName() . '::Email');
+                $bResult = ($bNeedUpdateUser && $bResult || !$bNeedUpdateUser) && $this->oManager->setQuota($sEmail, (int) $Quota);
+            }
         }
 
         return $bResult;
