@@ -3,9 +3,7 @@ var
 	_ = require('underscore'),
 	
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
-	Types = require('%PathToCoreWebclientModule%/js/utils/Types.js'),
-	Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js'),
-	Api = require('%PathToCoreWebclientModule%/js/Api.js')
+	Types = require('%PathToCoreWebclientModule%/js/utils/Types.js')
 ;
 
 module.exports = {
@@ -39,20 +37,6 @@ module.exports = {
 			this.HasPassword = Types.pBool(oAppDataSection.HasPassword, this.HasPassword);
 			this.TabName = Types.pString(oAppDataSection.TabName, this.TabName);
 		}
-
-		const onGetUserTokenResponse = function (oResponse, oRequest) {
-			if (!oResponse.Result) {
-				Api.showErrorByCode(oResponse, TextUtils.i18n('COREWEBCLIENT/ERROR_UNKNOWN'))
-			}
-		}
-
-		Ajax.send(
-			this.ServerModuleName,
-			'GetUserToken',
-			null,
-			onGetUserTokenResponse,
-			this
-		)
 	},
 	
 	/**
