@@ -26,6 +26,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         
         $this->subscribeEvent('Core::CreateUser::after', array($this, 'onAfterCreateUser'));
         $this->subscribeEvent('Core::DeleteUser::after', array($this, 'onAfterDeleteUser'));
+        $this->subscribeEvent('Core::Logout::after', array($this, 'onAfterLogout'));
     }
 
     /**
@@ -50,6 +51,21 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
     public function getModuleSettings()
     {
         return $this->oModuleSettings;
+    }
+
+    public function onAfterLogout($aArgs, &$mResult)
+    {
+        if ($mResult) {
+            @\setcookie(
+                'seafile_token',
+                '',
+                0, //\strtotime('+1 day'),
+                \Aurora\System\Api::getCookiePath(),
+                null,
+                \Aurora\System\Api::getCookieSecure(),
+                true
+            );
+        }
     }
 
     public function onAfterCreateUser($aArgs, &$mResult)
