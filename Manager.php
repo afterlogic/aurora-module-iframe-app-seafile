@@ -191,13 +191,8 @@ class Manager extends \Aurora\System\Managers\AbstractManager
                 ]);
             } catch (\Exception $oException) {
                 \Aurora\System\Api::Log('Delete account Exception', \Aurora\System\Enums\LogLevel::Error);
-                $response = $oException->getResponse();
-                if ($response) {
-                    \Aurora\System\Api::Log($response->getBody()->getContents(), \Aurora\System\Enums\LogLevel::Error);
-                } else {
-                    $oException->getMessage();
-                    \Aurora\System\Api::LogException($oException, \Aurora\System\Enums\LogLevel::Error);
-                }
+                \Aurora\System\Api::Log($oException->getMessage(), \Aurora\System\Enums\LogLevel::Error);
+                \Aurora\System\Api::LogException($oException, \Aurora\System\Enums\LogLevel::Error);
             }
 
             if ($response->getStatusCode() === 200 || $response->getStatusCode() === 201) {
@@ -217,6 +212,7 @@ class Manager extends \Aurora\System\Managers\AbstractManager
             $sSeafileUrl = $this->oModule->oModuleSettings->Url;
             $client = new \GuzzleHttp\Client();
     
+            $response = null;
             try {
                 $response = $client->request('GET', $sSeafileUrl . '/api/v2.1/admin/users/' . $sEmail . '/', [
                     'headers' => [
@@ -227,16 +223,11 @@ class Manager extends \Aurora\System\Managers\AbstractManager
                 ]);
             } catch (\Exception $oException) {
                 \Aurora\System\Api::Log('Get user account info Exception', \Aurora\System\Enums\LogLevel::Error);
-                $response = $oException->getResponse();
-                if ($response) {
-                    \Aurora\System\Api::Log($response->getBody()->getContents(), \Aurora\System\Enums\LogLevel::Error);
-                } else {
-                    $oException->getMessage();
-                    \Aurora\System\Api::LogException($oException, \Aurora\System\Enums\LogLevel::Error);
-                }
+                \Aurora\System\Api::Log($oException->getMessage(), \Aurora\System\Enums\LogLevel::Error);
+                \Aurora\System\Api::LogException($oException, \Aurora\System\Enums\LogLevel::Error);
             }
 
-            if ($response->getStatusCode() === 200 || $response->getStatusCode() === 201) {
+            if ($response && ($response->getStatusCode() === 200 || $response->getStatusCode() === 201)) {
                 $oResponseBody = json_decode($response->getBody()->getContents());
                 if (isset($oResponseBody->quota_total)) {
                     $mResult = $oResponseBody->quota_total / 1000 / 1000;
@@ -256,6 +247,8 @@ class Manager extends \Aurora\System\Managers\AbstractManager
             $sSeafileUrl = $this->oModule->oModuleSettings->Url;
             $client = new \GuzzleHttp\Client();
     
+            $response = null;
+
             try {
                 $response = $client->request('PUT', $sSeafileUrl . '/api/v2.1/admin/users/' . $sLogin . '/', [
                     'json' => [
@@ -269,16 +262,11 @@ class Manager extends \Aurora\System\Managers\AbstractManager
                 ]);
             } catch (\Exception $oException) {
                 \Aurora\System\Api::Log('Update user account Exception', \Aurora\System\Enums\LogLevel::Error);
-                $response = $oException->getResponse();
-                if ($response) {
-                    \Aurora\System\Api::Log($response->getBody()->getContents(), \Aurora\System\Enums\LogLevel::Error);
-                } else {
-                    $oException->getMessage();
-                    \Aurora\System\Api::LogException($oException, \Aurora\System\Enums\LogLevel::Error);
-                }
+                \Aurora\System\Api::Log($oException->getMessage(), \Aurora\System\Enums\LogLevel::Error);
+                \Aurora\System\Api::LogException($oException, \Aurora\System\Enums\LogLevel::Error);
             }
 
-            if ($response->getStatusCode() === 200 || $response->getStatusCode() === 201) {
+            if ($response  && ($response->getStatusCode() === 200 || $response->getStatusCode() === 201)) {
                 $bResult = true;
             }
         }
