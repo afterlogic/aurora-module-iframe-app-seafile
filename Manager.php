@@ -285,4 +285,17 @@ class Manager extends \Aurora\System\Managers\AbstractManager
 
         return $bResult;
     }
+
+    protected function getDownloadLink($link, $headers)
+    {
+        $client = new \GuzzleHttp\Client();
+        $res = $client->get($link, [
+            'headers' => $headers
+        ]);
+        if ($res->getStatusCode() === 200) {
+            $resource = $res->getBody();
+            return trim($resource->read($resource->getSize()), '"');
+        }
+        return '';
+    }
 }
