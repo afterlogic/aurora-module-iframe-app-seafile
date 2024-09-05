@@ -40,11 +40,27 @@ class Manager extends \Aurora\System\Managers\AbstractManager
         if (!$this->sAdminAuthToken || $bForce) {
 
             $sAdminLogin = $this->oModule->oModuleSettings->AdminLogin;
-            $sAdminPassword = $this->oModule->oModuleSettings->AdminPassword;
+            $sAdminPassword = '';
 
-            $token = $this->authenticate($sAdminLogin, $sAdminPassword);
-            if ($token) {
-                $this->sAdminAuthToken = $token;
+            $sAdminPasswordEncrypted = $this->oModule->oModuleSettings->AdminPassword;
+
+            // encrypt password and save it in case it's not encrypted yet
+            if ($sAdminPasswordEncrypted) {
+                $sAdminPassword = \Aurora\System\Utils::DecryptValue($sAdminPasswordEncrypted);
+
+                if ($sAdminPassword === false) {
+                   $this->oModule->setConfig('AdminPassword', \Aurora\System\Utils::EncryptValue($sAdminPasswordEncrypted));
+                   $this->oModule->saveModuleConfig();
+                   $sAdminPassword = $sAdminPasswordEncrypted;
+               }
+            }
+
+            if ($sAdminLogin && $sAdminPassword) {
+                $token = $this->authenticate($sAdminLogin, $sAdminPassword);
+                
+                if ($token) {
+                    $this->sAdminAuthToken = $token;
+                }
             }
         }
 
@@ -140,7 +156,9 @@ class Manager extends \Aurora\System\Managers\AbstractManager
         if ($sAdminAuthToken) {
             $sSeafileUrl = $this->oModule->oModuleSettings->Url;
             $client = new \GuzzleHttp\Client();
-    
+            
+            $response = null;
+
             try {
                 $response = $client->request('POST', $sSeafileUrl . '/api/v2.1/admin/users/', [
                     'json' => [
@@ -156,16 +174,11 @@ class Manager extends \Aurora\System\Managers\AbstractManager
                 ]);
             } catch (\Exception $oException) {
                 \Aurora\System\Api::Log('Create account Exception', \Aurora\System\Enums\LogLevel::Error);
-                $response = $oException->getResponse();
-                if ($response) {
-                    \Aurora\System\Api::Log($response->getBody()->getContents(), \Aurora\System\Enums\LogLevel::Error);
-                } else {
-                    $oException->getMessage();
-                    \Aurora\System\Api::LogException($oException, \Aurora\System\Enums\LogLevel::Error);
-                }
+                \Aurora\System\Api::Log($oException->getMessage(), \Aurora\System\Enums\LogLevel::Error);
+                \Aurora\System\Api::LogException($oException, \Aurora\System\Enums\LogLevel::Error);
             }
 
-            if ($response->getStatusCode() === 200 || $response->getStatusCode() === 201) {
+            if ($response && ($response->getStatusCode() === 200 || $response->getStatusCode() === 201)) {
                 $mResult = json_decode($response->getBody()->getContents());
             }
         }
