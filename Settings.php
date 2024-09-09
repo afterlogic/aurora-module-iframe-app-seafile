@@ -46,6 +46,12 @@ class Settings extends \Aurora\System\Module\Settings
                 null,
                 "URL of the integrated app",
             ),
+            "AllowEditSettings" => new SettingsProperty(
+                true,
+                "boolean",
+                null,
+                "denotes if users can edit settings",
+            ),
             "AdminLogin" => new SettingsProperty(
                 "",
                 "string",

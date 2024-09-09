@@ -12,8 +12,10 @@ module.exports = {
 	
 	TabName: TextUtils.i18n('%MODULENAME%/LABEL_TAB_NAME'),
 	AuthMode: 0,
+	AllowEditSettings: true,
 	Url: '',
 	Host: '',
+	Email: '',
 	Login: '',
 	HasPassword: false,
 	
@@ -31,8 +33,11 @@ module.exports = {
 			this.EAuthMode = Types.pObject(oAppDataSection.EAuthMode);
 			
 			this.AuthMode = Types.pEnum(oAppDataSection.AuthMode, this.EAuthMode, this.AuthMode);
+			this.AllowEditSettings = Types.pBool(oAppDataSection.AllowEditSettings, this.AllowEditSettings);
+			
 			this.Url = Types.pString(oAppDataSection.Url, this.Url);
 			this.Host = Types.pString(oAppDataSection.Url, this.Url);
+			this.Email = Types.pString(oAppDataSection.Email, this.Email);
 			this.Login = Types.pString(oAppDataSection.Login, this.Login);
 			this.HasPassword = Types.pBool(oAppDataSection.HasPassword, this.HasPassword);
 			this.TabName = Types.pString(oAppDataSection.TabName, this.TabName);
@@ -42,11 +47,13 @@ module.exports = {
 	/**
 	 * Updates module settings after editing.
 	 * 
+	 * @param {string} sEmail New value of setting 'Email'
 	 * @param {string} sLogin New value of setting 'Login'
 	 * @param {boolean} bHasPassword Indicates if user has custom password
 	 */
-	update: function (sLogin, bHasPassword)
+	update: function (sEmail, sLogin, bHasPassword)
 	{
+		this.Email = sEmail;
 		this.Login = sLogin;
 		this.HasPassword = bHasPassword;
 	},

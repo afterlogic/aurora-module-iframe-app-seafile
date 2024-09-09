@@ -120,9 +120,11 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
                 'AuthMode' => $this->oModuleSettings->AuthMode,
                 'Url' => $this->oModuleSettings->Url,
                 'TabName' => $this->oModuleSettings->TabName,
+                'AllowEditSettings' => $this->oModuleSettings->AllowEditSettings,
             );
 
             if ($oUser->isNormalOrTenant() && $this->isEnabledForEntity($oUser)) {
+                $oSetting['Email'] = $oUser->getExtendedProp(self::GetName() . '::Email');
                 $oSetting['Login'] = $oUser->getExtendedProp(self::GetName() . '::Login');
                 $oSetting['HasPassword'] = (bool) $oUser->getExtendedProp(self::GetName() . '::Password');
             }
@@ -144,18 +146,23 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
      * @param string $Password
      * @return bool
      */
-    public function UpdateSettings($Login = null, $Password = null)
+    public function UpdateSettings($Email = null, $Login = null, $Password = null)
     {
-        \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
-        $oUser = \Aurora\System\Api::getAuthenticatedUser();
-        if ($oUser) {
-            if ($Login !== null) {
-                $oUser->setExtendedProp(self::GetName() . '::Login', $Login);
+        if ($this->oModuleSettings->AllowEditSettings) {
+            \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+            $oUser = \Aurora\System\Api::getAuthenticatedUser();
+            if ($oUser) {
+                if ($Email !== null) {
+                    $oUser->setExtendedProp(self::GetName() . '::Email', $Email);
+                }
+                if ($Login !== null) {
+                    $oUser->setExtendedProp(self::GetName() . '::Login', $Login);
+                }
+                if ($Password !== null) {
+                    $oUser->setExtendedProp(self::GetName() . '::Password', \Aurora\System\Utils::EncryptValue($Password));
+                }
+                return \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
             }
-            if ($Password !== null) {
-                $oUser->setExtendedProp(self::GetName() . '::Password', \Aurora\System\Utils::EncryptValue($Password));
-            }
-            return \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
         }
 
         return false;
@@ -289,13 +296,15 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
     }
 
     /**
-     * Obtains user password for superadmin.
+     * Obtains user password.
      * @param int $UserId
      * @return array
      */
     public function GetUserPassword($UserId)
     {
-        \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
+        \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+
+        \Aurora\System\Api::CheckAccess($UserId);
 
         $mResult = false;
 

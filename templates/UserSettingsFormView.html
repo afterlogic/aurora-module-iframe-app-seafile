@@ -5,6 +5,12 @@
 	<div class="fields">
 		<div class="fieldset">
 			<div class="row">
+				<span class="label" data-bind="i18n: {'key': 'COREWEBCLIENT/LABEL_EMAIL'}"></span>
+				<span class="value">
+					<input class="input" type="text" data-bind="value: email, valueUpdate: 'afterkeydown', onEnter: save">
+				</span>
+			</div>
+			<div class="row">
 				<span class="label" data-bind="i18n: {'key': 'COREWEBCLIENT/LABEL_LOGIN'}"></span>
 				<span class="value">
 					<input class="input" type="text" data-bind="value: login, valueUpdate: 'afterkeydown', onEnter: save">
@@ -12,8 +18,12 @@
 			</div>
 			<div class="row">
 				<span class="label" data-bind="i18n: {'key': 'COREWEBCLIENT/LABEL_PASSWORD'}"></span>
-				<span class="value">
-					<input class="input" autocomplete="new-password" type="password" data-bind="value: pass, valueUpdate: 'afterkeydown', onEnter: save">
+				<span class="value buttons">
+					<input class="input" autocomplete="new-password" type="password" data-bind="value: password, valueUpdate: 'afterkeydown', onEnter: save, visible: visiblePassword() === ''">
+					<input class="input" autocomplete="new-password" data-bind="value: visiblePassword, hasfocus: focusVisiblePassword, visible: visiblePassword() !== '', event: {blur: hidePassword}">
+					<span class="button contour_button" data-bind="click: showPassword">
+						<span data-bind="i18n: {'key': '%MODULENAME%/LABEL_SHOW_PASSWORD'}"></span>
+					</span>
 				</span>
 			</div>
 		</div>

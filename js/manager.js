@@ -43,7 +43,7 @@ module.exports = function (oAppData) {
 			 */
 			start: function (ModulesManager) {
 
-				if (Settings.AuthMode === Enums.IframeAppSeafileAuthMode.CustomCredentialsSetByUser) {
+				if (Settings.AllowEditSettings) {
 					ModulesManager.run('SettingsWebclient', 'registerSettingsTab', [
 						function () { return require('modules/%ModuleName%/js/views/UserSettingsFormView.js'); },
 						sAppHash,

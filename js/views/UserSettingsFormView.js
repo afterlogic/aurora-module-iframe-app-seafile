@@ -5,6 +5,8 @@ var
 	ko = require('knockout'),
 	
 	ModulesManager = require('%PathToCoreWebclientModule%/js/ModulesManager.js'),
+	Api = require('%PathToCoreWebclientModule%/js/Api.js'),
+	Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js'),
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
 	CAbstractSettingsFormView = ModulesManager.run('SettingsWebclient', 'getAbstractSettingsFormViewClass'),
 	
@@ -25,8 +27,11 @@ function CUserSettingsFormView()
 	CAbstractSettingsFormView.call(this, Settings.ServerModuleName);
 
 	this.sTabName = Settings.TabName || TextUtils.i18n('%MODULENAME%/LABEL_SETTINGS_TAB');
+	this.email = ko.observable(Settings.Email);
 	this.login = ko.observable(Settings.Login);
-	this.pass = ko.observable(Settings.HasPassword ? FAKE_PASS : '');
+	this.password = ko.observable(Settings.HasPassword ? FAKE_PASS : '');
+	this.visiblePassword = ko.observable('');
+	this.focusVisiblePassword = ko.observable(false);
 }
 
 _.extendOwn(CUserSettingsFormView.prototype, CAbstractSettingsFormView.prototype);
@@ -44,8 +49,9 @@ CUserSettingsFormView.prototype.ViewTemplate = '%ModuleName%_UserSettingsFormVie
 CUserSettingsFormView.prototype.getCurrentValues = function ()
 {
 	return [
+		this.email(),
 		this.login(),
-		this.pass()
+		this.password()
 	];
 };
 
@@ -54,8 +60,9 @@ CUserSettingsFormView.prototype.getCurrentValues = function ()
  */
 CUserSettingsFormView.prototype.revertGlobalValues = function ()
 {
+	this.email(Settings.Email);
 	this.login(Settings.Login);
-	this.pass(Settings.HasPassword ? FAKE_PASS : '');
+	this.password(Settings.HasPassword ? FAKE_PASS : '');
 };
 
 /**
@@ -66,10 +73,11 @@ CUserSettingsFormView.prototype.revertGlobalValues = function ()
 CUserSettingsFormView.prototype.getParametersForSave = function ()
 {
 	const parameters = {
-		Login: this.login().trim()
+		Email: this.email().trim(),
+		Login: this.login().trim(),
 	};
-	if (this.pass() !== FAKE_PASS) {
-		parameters.Password = this.pass().trim();
+	if (this.password() !== FAKE_PASS) {
+		parameters.Password = this.password().trim();
 	}
 	return parameters;
 };
@@ -81,7 +89,43 @@ CUserSettingsFormView.prototype.getParametersForSave = function ()
  */
 CUserSettingsFormView.prototype.applySavedValues = function (oParameters)
 {
-	Settings.update(oParameters.Login, true);
+	Settings.update(oParameters.Email, oParameters.Login, true);
+};
+
+CUserSettingsFormView.prototype.hidePassword = function ()
+{
+	this.visiblePassword('');
+	this.focusVisiblePassword(false);
+};
+/**
+ * Applies new settings values to global settings object.
+ * 
+ * @param {Object} oParameters Parameters with new values which were passed to the server.
+ */
+CUserSettingsFormView.prototype.showPassword = function ()
+{
+	Ajax.send(
+		Settings.ServerModuleName,
+		'GetUserPassword',
+		null,
+		this.onGetPasswordResponse,
+		this
+	);
+};
+
+/**
+ * Applies new settings values to global settings object.
+ * 
+ * @param {Object} oParameters Parameters with new values which were passed to the server.
+ */
+CUserSettingsFormView.prototype.onGetPasswordResponse = function (oResponse, oRequest)
+{
+	if (!oResponse.Result) {
+		Api.showErrorByCode(oResponse, TextUtils.i18n('COREWEBCLIENT/ERROR_UNKNOWN'));
+	} else {
+		this.visiblePassword(oResponse.Result);
+		this.focusVisiblePassword(true);
+	}
 };
 
 module.exports = new CUserSettingsFormView();
