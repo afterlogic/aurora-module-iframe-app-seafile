@@ -57,10 +57,7 @@ function CSelectFilesPopup()
 		}
 	];
 	this.allowedStorages = ko.computed(function () {
-		if (this.selectFilesMode()) {
-			return this.storages;
-		}
-		return this.storages.filter(storage => storage.name === 'repo');
+		return this.storages;
 	}, this);
 	this.selectedStorage = ko.observable('');
 	this.selectedStorageLabel = ko.computed(function () {
@@ -253,7 +250,11 @@ CSelectFilesPopup.prototype.populateCurrentRepos = function ()
 	if (this.selectedStorage() === 'repo') {
 		currentRepos = this.mineRepos;
 	} else if (this.selectedStorage() === 'srepo') {
-		currentRepos = this.sharedRepos;
+		if (this.selectFilesMode()) {
+			currentRepos = this.sharedRepos;
+		} else {
+			currentRepos = this.sharedRepos.filter(repo => repo.permission === 'rw');
+		}
 	}
 	this.currentRepos(currentRepos);
 };
