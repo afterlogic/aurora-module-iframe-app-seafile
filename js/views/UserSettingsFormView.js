@@ -13,7 +13,6 @@ var
 	Settings = require('modules/%ModuleName%/js/Settings.js')
 ;
 
-
 const FAKE_PASS = '******';
 
 /**
@@ -30,6 +29,8 @@ function CUserSettingsFormView()
 	this.email = ko.observable(Settings.Email);
 	this.login = ko.observable(Settings.Login);
 	this.password = ko.observable(Settings.HasPassword ? FAKE_PASS : '');
+	this.bAllowUserEditSettings = Settings.AllowUserEditSettings;
+
 	this.visiblePassword = ko.observable('');
 	this.focusVisiblePassword = ko.observable(false);
 }
@@ -80,6 +81,11 @@ CUserSettingsFormView.prototype.getParametersForSave = function ()
 		parameters.Password = this.password().trim();
 	}
 	return parameters;
+};
+
+CUserSettingsFormView.prototype.validateBeforeSave = function ()
+{
+	return this.bAllowUserEditSettings;
 };
 
 /**

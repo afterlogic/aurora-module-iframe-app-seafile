@@ -11,7 +11,7 @@ module.exports = {
 	HashModuleName: TextUtils.getUrlFriendlyName('%ModuleName%'), /*'iframe-app',*/
 	
 	TabName: TextUtils.i18n('%MODULENAME%/LABEL_TAB_NAME'),
-	AllowUserEditSettings: true,
+	AllowUserEditSettings: false,
 	Url: '',
 	Host: '',
 	Email: '',

@@ -41,13 +41,11 @@ module.exports = function (oAppData) {
 			 */
 			start: function (ModulesManager) {
 
-				if (Settings.AllowUserEditSettings) {
-					ModulesManager.run('SettingsWebclient', 'registerSettingsTab', [
-						function () { return require('modules/%ModuleName%/js/views/UserSettingsFormView.js'); },
-						sAppHash,
-						Settings.TabName || TextUtils.i18n('%MODULENAME%/LABEL_SETTINGS_TAB')
-					])
-				}
+				ModulesManager.run('SettingsWebclient', 'registerSettingsTab', [
+					function () { return require('modules/%ModuleName%/js/views/UserSettingsFormView.js'); },
+					sAppHash,
+					Settings.TabName || TextUtils.i18n('%MODULENAME%/LABEL_SETTINGS_TAB')
+				])
 
 				ModulesManager.run('MailWebclient', 'registerComposeUploadAttachmentsController',
 					[require('modules/%ModuleName%/js/views/UploadButtonOnComposeView.js')]

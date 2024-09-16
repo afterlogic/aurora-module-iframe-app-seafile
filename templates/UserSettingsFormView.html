@@ -28,7 +28,7 @@
 			</div>
 		</div>
 
-		<div class="buttons">
+		<div class="buttons" data-bind="if: bAllowUserEditSettings">
 			<span class="button" data-bind="click: save, visible: !isSaving()">
 				<span data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_SAVE'}"></span>
 			</span>
