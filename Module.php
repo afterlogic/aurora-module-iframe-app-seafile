@@ -142,7 +142,8 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
     /**
      * Updates module settings by a user.
      *
-     * @param string $Login
+     * @param string|null $Email
+     * @param string|null $Login
      * @param string $Password
      * @return bool
      */
@@ -174,18 +175,20 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
      * @param string $TabName
      * @param string $Url
      * @param string $AdminLogin
-     * @param string $AdminPassword
+     * @param string|null $AdminPassword
+     * @param bool $AllowUserEditSettings
      * @return bool
      */
-    public function UpdateAdminSettings($TabName = null, $Url = null, $AdminLogin = null, $AdminPassword = null)
+    public function UpdateAdminSettings($TabName = '', $Url = '', $AdminLogin = '', $AdminPassword = null, $AllowUserEditSettings = false)
     {
         \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
-        $this->setConfig('TabName', $TabName);
-        $this->setConfig('Url', $Url);
-        $this->setConfig('AdminLogin', $AdminLogin);
+        $this->setConfig('TabName', (string) $TabName);
+        $this->setConfig('Url', (string) $Url);
+        $this->setConfig('AdminLogin', (string) $AdminLogin);
+        $this->setConfig('AllowUserEditSettings', (bool) $AllowUserEditSettings);
 
         if ($AdminPassword !== null) {
-            $this->setConfig('AdminPassword', \Aurora\System\Utils::EncryptValue($AdminPassword));
+            $this->setConfig('AdminPassword', \Aurora\System\Utils::EncryptValue((string) $AdminPassword));
         }
 
         return $this->saveModuleConfig();

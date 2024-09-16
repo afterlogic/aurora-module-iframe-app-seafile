@@ -7,16 +7,16 @@ class IframeAppSeafileSettings {
 
     if (!_.isEmpty(moduleData)) {
       this.tabName = typesUtils.pString(moduleData.TabName)
-      this.hasPassword = typesUtils.pBool(moduleData.HasPassword)
-      this.login = typesUtils.pString(moduleData.Login)
+      // this.hasPassword = typesUtils.pBool(moduleData.HasPassword)
+      // this.login = typesUtils.pString(moduleData.Login)
       this.url = typesUtils.pString(moduleData.Url)
       this.adminLogin = typesUtils.pString(moduleData.AdminLogin)
       this.adminPassword = typesUtils.pString(moduleData.AdminPassword)
-      this.allowUserEditSettings = typesUtils.pBool(moduleData.allowUserEditSettings)
+      this.allowUserEditSettings = typesUtils.pBool(moduleData.AllowUserEditSettings)
     }
   }
 
-  saveIframeAppSettings({tabName, url, adminLogin, adminPassword, allowUserEditSettings }) {
+  saveSettings({tabName, url, adminLogin, adminPassword, allowUserEditSettings }) {
     this.tabName = tabName
     this.url = url
     this.adminLogin = adminLogin
@@ -32,11 +32,11 @@ export default {
     settings = new IframeAppSeafileSettings(appData)
   },
 
-  saveIframeAppSettings(data) {
-    settings.saveIframeAppSettings(data)
+  saveSettings(data) {
+    settings.saveSettings(data)
   },
 
-  getIframeAppSettings() {
+  getSettings() {
     return {
       tabName: settings.tabName,
       url: settings.url,

@@ -95,7 +95,7 @@ export default {
      * Method is used in doBeforeRouteLeave mixin
      */
     hasChanges() {
-      const data = settings.getIframeAppSettings()
+      const data = settings.getSettings()
       return (
         this.url !== data.url
         || this.tabName !== data.tabName
@@ -129,10 +129,11 @@ export default {
         const parameters = {
           TabName: this.tabName,
           Url: this.url,
-          AdminLogin: this.adminLogin,          
+          AdminLogin: this.adminLogin,
+          AllowUserEditSettings: this.allowUserEditSettings,
         }
 
-        const data = settings.getIframeAppSettings()
+        const data = settings.getSettings()
         if (this.adminPassword.value !== data.adminPassword) {
           parameters['AdminPassword'] = this.adminPassword
         }
@@ -147,11 +148,12 @@ export default {
             (result) => {
               this.saving = false
               if (result === true) {
-                settings.saveIframeAppSettings({
+                settings.saveSettings({
                   tabName: this.tabName,
                   url: this.url,
                   adminLogin: this.adminLogin,
                   adminPassword: this.adminPassword,
+                  allowUserEditSettings: this.allowUserEditSettings,
                 })
                 this.populate()
                 notification.showReport(this.$t('COREWEBCLIENT.REPORT_SETTINGS_UPDATE_SUCCESS'))
@@ -170,11 +172,13 @@ export default {
     },
 
     populate() {
-      const data = settings.getIframeAppSettings()
+      const data = settings.getSettings()
+      
       this.tabName = data.tabName
       this.url = data.url
       this.adminLogin = data.adminLogin
       this.adminPassword = data.adminPassword
+      this.allowUserEditSettings = data.allowUserEditSettings
     },
   },
 }
