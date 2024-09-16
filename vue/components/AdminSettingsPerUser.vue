@@ -14,16 +14,16 @@
           <div class="row q-mt-md" v-if="isAuthModeCredentialsSetByAdmin">
             <div class="col-2 q-my-sm" v-t="'COREWEBCLIENT.LABEL_EMAIL'"></div>
             <div class="col-5">
-              <q-input outlined dense bg-color="white" v-model="emailId" ref="emailId" @keyup.enter="save" />
+              <q-input outlined dense bg-color="white" v-model="emailId" ref="emailId" @keyup.enter="updateSettingsForEntity" />
             </div>
           </div>
           <div class="row q-mt-md" v-if="isAuthModeCredentialsSetByAdmin">
             <div class="col-2 q-my-sm" v-t="'COREWEBCLIENT.LABEL_LOGIN'"></div>
             <div class="col-5">
-              <q-input outlined dense bg-color="white" v-model="login" ref="login" @keyup.enter="save" />
+              <q-input outlined dense bg-color="white" v-model="login" ref="login" @keyup.enter="updateSettingsForEntity" />
             </div>
           </div>
-          <div class="row q-mt-md" v-if="isAuthModeCredentialsSetByAdmin">
+          <div class="row items-center q-mt-md" v-if="isAuthModeCredentialsSetByAdmin">
             <div class="col-2 q-my-sm" v-t="'COREWEBCLIENT.LABEL_PASSWORD'"></div>
             <div class="col-5">
               <q-input
@@ -34,10 +34,10 @@
                 autocomplete="new-password"
                 v-model="password"
                 ref="password"
-                @keyup.enter="save"
+                @keyup.enter="updateSettingsForEntity"
               />
             </div>
-            <div class="col">
+            <div class="col1 q-mx-sm">
               <q-btn
                 unelevated
                 no-caps
@@ -45,7 +45,7 @@
                 class="q-px-sm"
                 :ripple="false"
                 color="primary"
-                :label="$t('PASSWORD')"
+                :label="$t('IFRAMEAPPSEAFILE.LABEL_SHOW_PASSWORD')"
                 @click="showPassword"
               />
             </div>
@@ -53,12 +53,23 @@
           <div class="row q-mt-md">
             <div class="col-2 q-my-sm" v-t="'IFRAMEAPPSEAFILE.LABEL_QUOTA'"></div>
             <div class="col-5">
-              <q-input outlined dense bg-color="white" v-model="quota" ref="quota" @keyup.enter="save" />
+              <q-input outlined dense bg-color="white" v-model="quota" ref="quota" @keyup.enter="updateSettingsForEntity" />
             </div>
           </div>
         </q-card-section>
       </q-card>
       <div class="q-pt-md text-right">
+        <q-btn
+          unelevated
+          no-caps
+          dense
+          class="q-px-sm q-mx-md"
+          :ripple="false"
+          color="primary"
+          v-if="isCreateAccountAllowed"
+          :label="$t('IFRAMEAPPSEAFILE.ACTION_CREATE_SEAFILE_ACCOUNT')"
+          @click="confirmCreateSeafileAccount"
+        />
         <q-btn
           unelevated
           no-caps
@@ -70,6 +81,7 @@
           @click="updateSettingsForEntity"
         />
       </div>
+      <ConfirmDialog ref="confirmDialog" />
     </div>
     <q-inner-loading style="justify-content: flex-start" :showing="loading || saving">
       <q-linear-progress query />
@@ -84,6 +96,7 @@ import errors from 'src/utils/errors'
 import notification from 'src/utils/notification'
 import typesUtils from 'src/utils/types'
 import webApi from 'src/utils/web-api'
+import ConfirmDialog from 'src/components/ConfirmDialog'
 
 import cache from 'src/cache'
 
@@ -93,6 +106,10 @@ const FAKE_PASS = '******'
 
 export default {
   name: 'AdminSettingsPerUser',
+
+  components: {
+    ConfirmDialog,
+  },
 
   data() {
     return {
@@ -105,6 +122,7 @@ export default {
       login: '',
       password: '',
       quota: 100,
+      isCreateAccountAllowed: false,
     }
   },
 
@@ -227,6 +245,8 @@ export default {
               this.login = result.Login || ''
               this.password = result.HasPassword ? FAKE_PASS : ''
               this.quota = result.Quota || 0
+
+              this.isCreateAccountAllowed = this.emailId === '' && this.login === ''
             }
           },
           (response) => {
@@ -253,6 +273,43 @@ export default {
             if (result) {
               alert('Password is: ' + result);
             }
+          },
+          (response) => {
+            notification.showError(errors.getTextFromResponse(response))
+          }
+        )
+    },
+
+    confirmCreateSeafileAccount() {
+      if (this.user && _.isFunction(this?.$refs?.confirmDialog?.openDialog)) {
+        this.$refs.confirmDialog.openDialog({
+          // title: name,
+          message: this.$t('IFRAMEAPPSEAFILE.CONFIRM_CREATE_SEAFILE_ACCOUNT', { ACCOUNT_EMAIL: this.user?.publicId }),
+          okHandler: this.createSeafileAccount.bind(this)
+        })
+      }
+    },
+    createSeafileAccount() {
+      this.loading = true
+      const parameters = {
+        UserId: this.user?.id,
+        TenantId: this.user.tenantId,
+      }
+      webApi
+        .sendRequest({
+          moduleName: 'IframeAppSeafile',
+          methodName: 'CreateSeafileAccount',
+          parameters,
+        })
+        .then(
+          (result) => {
+            this.loading = false
+            if (result) {
+                this.getPerUserSettings()
+                notification.showReport(this.$t('IFRAMEAPPSEAFILE.REPORT_SEAFILE_ACCOUNT_CREATION_SUCCESS'))
+              } else {
+                notification.showError(this.$t('IFRAMEAPPSEAFILE.ERROR_SEAFILE_ACCOUNT_CREATION_FAILED'))
+              }
           },
           (response) => {
             notification.showError(errors.getTextFromResponse(response))

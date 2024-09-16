@@ -237,13 +237,13 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
             $bNeedUpdateUser = false;
             $sCurrentEmail = $oUser->getExtendedProp(self::GetName() . '::Email');
-            if (!empty($EmailId) && $sCurrentEmail !== $Login) {
+            if ($sCurrentEmail !== $Login) {
                 $oUser->setExtendedProp(self::GetName() . '::Email', $EmailId);
                 $bNeedUpdateUser = true;
             }
 
             $sCurrentLogin = $oUser->getExtendedProp(self::GetName() . '::Login');
-            if (!empty($Login) && $sCurrentLogin !== $Login) {
+            if ($sCurrentLogin !== $Login) {
                 // TODO save new login (email) in Seafile
                 // https://seafile-api.readme.io/reference/put_api-v2-1-admin-update-user-ccnet-email
                 $oUser->setExtendedProp(self::GetName() . '::Login', $Login);
@@ -251,18 +251,20 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
             }
 
             $sCurrentPassword = \Aurora\System\Utils::DecryptValue($oUser->getExtendedProp(self::GetName() . '::Password'));
-            if (!empty($Password) && $sCurrentPassword !== $Password) {
+            if ($sCurrentPassword !== $Password) {
                 $oUser->setExtendedProp(self::GetName() . '::Password', \Aurora\System\Utils::EncryptValue($Password));
                 $bNeedUpdateUser = true;
             }
 
             if ($bNeedUpdateUser) {
                 $bResult = \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+            } else {
+                $bResult = true;
             }
 
-            if (is_numeric($Quota)) {
-                $sEmail = $oUser->getExtendedProp(self::GetName() . '::Email');
-                $bResult = ($bNeedUpdateUser && $bResult || !$bNeedUpdateUser) && $this->oManager->setQuota($sEmail, (int) $Quota);
+            $sEmail = $oUser->getExtendedProp(self::GetName() . '::Email');
+            if (is_numeric($Quota) && !empty($sEmail)) {
+                $bResult = $this->oManager->setQuota($sEmail, (int) $Quota);
             }
         }
 
@@ -314,8 +316,40 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         }
 
         return $mResult;
-    
     }
+
+    /**
+     * Obtains user password.
+     * @param int $UserId
+     * @return array
+     */
+    public function CreateSeafileAccount($UserId)
+    {
+        \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
+
+        \Aurora\System\Api::CheckAccess($UserId);
+
+        $mResult = false;
+
+        $oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserWithoutRoleCheck($UserId);
+
+        if ($oUser && empty($oUser->getExtendedProp(self::GetName() . '::Email')) && empty($oUser->getExtendedProp(self::GetName() . '::Login'))) {
+            $sPassword = \Illuminate\Support\Str::random(10);
+            $oAccount = $this->oManager->createAccount($oUser['PublicId'], $sPassword);
+
+            if ($oAccount && isset($oAccount->email)) {
+                $oUser->setExtendedProps([
+                    self::GetName() . '::Login' => $oAccount->login_id,
+                    self::GetName() . '::Email' => $oAccount->email,
+                    self::GetName() . '::Password' => \Aurora\System\Utils::EncryptValue($sPassword)
+                ]);
+                $mResult = \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+            }
+        }
+
+        return $mResult;
+    }
+
     /**
      * Obtains user password for superadmin.
      * @return string|null
