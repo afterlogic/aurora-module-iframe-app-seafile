@@ -33,13 +33,9 @@
           <div class="row">
             <div class="col-2"></div>
             <div class="col-5">
-              <q-item-label caption v-t="'IFRAMEAPPSEAFILE.HINT_URL_HTTP_HTTPS'" />
-            </div>
-          </div>
-          <div class="row q-mb-md">
-            <div class="col-2 q-my-sm" v-t="'IFRAMEAPPSEAFILE.LABEL_AUTH_MODE'"></div>
-            <div class="col-5">
-              <q-select outlined dense bg-color="white" v-model="currentModeAuth" :options="authModeList" />
+              <q-checkbox dense v-model="allowUserEditSettings">
+                <q-item-label v-t="'IFRAMEAPPSEAFILE.LABEL_ALLOW_USER_EDIT_SETTIMGS'" />
+              </q-checkbox>
             </div>
           </div>
         </q-card-section>
@@ -69,11 +65,8 @@ import errors from 'src/utils/errors'
 import notification from 'src/utils/notification'
 import webApi from 'src/utils/web-api'
 
-import enums from '../enums'
 import settings from '../settings'
 import { isValidHttpURL } from '../utils/validation'
-
-const EAuthModes = enums.getAuthMode()
 
 export default {
   name: 'AdminSettings',
@@ -81,13 +74,11 @@ export default {
   data() {
     return {
       saving: false,
-      authMode: 0,
-      authModeList: [],
-      currentModeAuth: '',
       tabName: '',
       url: '',
       adminLogin: '',
       adminPassword: '',
+      allowUserEditSettings: false,
     }
   },
 
@@ -108,9 +99,9 @@ export default {
       return (
         this.url !== data.url
         || this.tabName !== data.tabName
-        || this.currentModeAuth.value !== data.authMode
         || this.adminLogin.value !== data.adminLogin
         || this.adminPassword.value !== data.adminPassword
+        || this.allowUserEditSettings.value !== data.allowUserEditSettings
       )
     },
 
@@ -137,11 +128,8 @@ export default {
         this.saving = true
         const parameters = {
           TabName: this.tabName,
-          //TODO
-          AuthMode: this.currentModeAuth.value,
           Url: this.url,
-          AdminLogin: this.adminLogin,
-          
+          AdminLogin: this.adminLogin,          
         }
 
         const data = settings.getIframeAppSettings()
@@ -161,7 +149,6 @@ export default {
               if (result === true) {
                 settings.saveIframeAppSettings({
                   tabName: this.tabName,
-                  authMode: this.currentModeAuth.value,
                   url: this.url,
                   adminLogin: this.adminLogin,
                   adminPassword: this.adminPassword,
@@ -186,42 +173,8 @@ export default {
       const data = settings.getIframeAppSettings()
       this.tabName = data.tabName
       this.url = data.url
-      this.authMode = data.authMode
-      this.authModeList = this.getAuthModeList()
-      this.currentModeAuth = this.getCurrentAuthMode()
       this.adminLogin = data.adminLogin
       this.adminPassword = data.adminPassword
-    },
-
-    getAuthModeList() {
-      return [
-        {
-          label: this.$t('IFRAMEAPPSEAFILE.OPTION_NO_AUTH'),
-          value: EAuthModes.NoAuthentication,
-        },
-        {
-          label: this.$t('IFRAMEAPPSEAFILE.OPTION_AURORA_CREDS'),
-          value: EAuthModes.AuroraUserCredentials,
-        },
-        {
-          label: this.$t('IFRAMEAPPSEAFILE.OPTION_CUSTOM_CREDS_BY_USER'),
-          value: EAuthModes.CustomCredentialsSetByUser,
-        },
-        {
-          label: this.$t('IFRAMEAPPSEAFILE.OPTION_CUSTOM_CREDS_BY_ADMIN'),
-          value: EAuthModes.CustomCredentialsSetByAdmin,
-        },
-      ]
-    },
-
-    getCurrentAuthMode() {
-      let currentMode = ''
-      this.authModeList.forEach((mode) => {
-        if (mode.value === this.authMode) {
-          currentMode = mode
-        }
-      })
-      return currentMode
     },
   },
 }

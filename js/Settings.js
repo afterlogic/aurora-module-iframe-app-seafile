@@ -11,8 +11,7 @@ module.exports = {
 	HashModuleName: TextUtils.getUrlFriendlyName('%ModuleName%'), /*'iframe-app',*/
 	
 	TabName: TextUtils.i18n('%MODULENAME%/LABEL_TAB_NAME'),
-	AuthMode: 0,
-	AllowEditSettings: true,
+	AllowUserEditSettings: true,
 	Url: '',
 	Host: '',
 	Email: '',
@@ -30,10 +29,7 @@ module.exports = {
 		
 		if (!_.isEmpty(oAppDataSection))
 		{
-			this.EAuthMode = Types.pObject(oAppDataSection.EAuthMode);
-			
-			this.AuthMode = Types.pEnum(oAppDataSection.AuthMode, this.EAuthMode, this.AuthMode);
-			this.AllowEditSettings = Types.pBool(oAppDataSection.AllowEditSettings, this.AllowEditSettings);
+			this.AllowUserEditSettings = Types.pBool(oAppDataSection.AllowUserEditSettings, this.AllowUserEditSettings);
 			
 			this.Url = Types.pString(oAppDataSection.Url, this.Url);
 			this.Host = Types.pString(oAppDataSection.Url, this.Url);
@@ -57,18 +53,4 @@ module.exports = {
 		this.Login = sLogin;
 		this.HasPassword = bHasPassword;
 	},
-	
-	/**
-	 * Updates admin module settings after editing.
-	 * 
-	 * @param {string} sTabName
-	 * @param {int} iAuthMode
-	 * @param {string} sUrl
-	 */
-	updateAdmin: function (sTabName, iAuthMode, sUrl)
-	{
-		this.TabName = sTabName;
-		this.AuthMode = iAuthMode;
-		this.Url = sUrl;
-	}
 };

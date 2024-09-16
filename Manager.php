@@ -28,7 +28,7 @@ class Manager extends \Aurora\System\Managers\AbstractManager
 
     /**
      * @var string
-     */ 
+     */
     private $sUserAuthToken;
 
     public function __construct(\Aurora\System\Module\AbstractModule $oModule = null)
@@ -36,7 +36,8 @@ class Manager extends \Aurora\System\Managers\AbstractManager
         parent::__construct($oModule);
     }
 
-    public function getAdminToken($bForce = false) {
+    public function getAdminToken($bForce = false)
+    {
         if (!$this->sAdminAuthToken || $bForce) {
 
             $sAdminLogin = $this->oModule->oModuleSettings->AdminLogin;
@@ -49,15 +50,15 @@ class Manager extends \Aurora\System\Managers\AbstractManager
                 $sAdminPassword = \Aurora\System\Utils::DecryptValue($sAdminPasswordEncrypted);
 
                 if ($sAdminPassword === false) {
-                   $this->oModule->setConfig('AdminPassword', \Aurora\System\Utils::EncryptValue($sAdminPasswordEncrypted));
-                   $this->oModule->saveModuleConfig();
-                   $sAdminPassword = $sAdminPasswordEncrypted;
-               }
+                    $this->oModule->setConfig('AdminPassword', \Aurora\System\Utils::EncryptValue($sAdminPasswordEncrypted));
+                    $this->oModule->saveModuleConfig();
+                    $sAdminPassword = $sAdminPasswordEncrypted;
+                }
             }
 
             if ($sAdminLogin && $sAdminPassword) {
                 $token = $this->authenticate($sAdminLogin, $sAdminPassword);
-                
+
                 if ($token) {
                     $this->sAdminAuthToken = $token;
                 }
@@ -67,7 +68,8 @@ class Manager extends \Aurora\System\Managers\AbstractManager
         return $this->sAdminAuthToken;
     }
 
-    public function getUserToken($oUser, $bForce = false) {
+    public function getUserToken($oUser, $bForce = false)
+    {
         if (!$this->sUserAuthToken || $bForce) {
 
             $sLogin = $oUser->getExtendedProp($this->oModule->GetName() . '::Login');
@@ -89,7 +91,7 @@ class Manager extends \Aurora\System\Managers\AbstractManager
     {
         $mResult = false;
         $sSeafileUrl = $this->oModule->oModuleSettings->Url;
-        
+
         $client = new \GuzzleHttp\Client();
 
         try {
@@ -110,10 +112,9 @@ class Manager extends \Aurora\System\Managers\AbstractManager
                     $mResult = $oResponseBody->token;
                 }
             }
-            
-        } catch (\Exception $e) {
-            $response = $e->getResponse();
-            return $response ? $response->getBody()->getContents() : '{"error_msg": "' . $e->getMessage() . '"}';
+        } catch (\Exception $oException) {
+            \Aurora\System\Api::Log($oException->getMessage(), \Aurora\System\Enums\LogLevel::Error);
+            \Aurora\System\Api::LogException($oException, \Aurora\System\Enums\LogLevel::Error);
         }
 
         return $mResult;
@@ -139,10 +140,9 @@ class Manager extends \Aurora\System\Managers\AbstractManager
                     $mResult = $sSeafileUrl . '/client-login/?token=' . $oResponseBody->token;
                 }
             }
-            
-        } catch (\Exception $e) {
-            $response = $e->getResponse();
-            return $response ? $response->getBody()->getContents() : '{"error_msg": "' . $e->getMessage() . '"}';
+        } catch (\Exception $oException) {
+            \Aurora\System\Api::Log($oException->getMessage(), \Aurora\System\Enums\LogLevel::Error);
+            \Aurora\System\Api::LogException($oException, \Aurora\System\Enums\LogLevel::Error);
         }
 
         return $mResult;
@@ -156,8 +156,6 @@ class Manager extends \Aurora\System\Managers\AbstractManager
         if ($sAdminAuthToken) {
             $sSeafileUrl = $this->oModule->oModuleSettings->Url;
             $client = new \GuzzleHttp\Client();
-            
-            $response = null;
 
             try {
                 $response = $client->request('POST', $sSeafileUrl . '/api/v2.1/admin/users/', [
@@ -172,15 +170,17 @@ class Manager extends \Aurora\System\Managers\AbstractManager
                         'content-type' => 'application/json',
                     ],
                 ]);
+
+                if ($response->getStatusCode() === 200 || $response->getStatusCode() === 201) {
+                    $mResult = json_decode($response->getBody()->getContents());
+                }
             } catch (\Exception $oException) {
                 \Aurora\System\Api::Log('Create account Exception', \Aurora\System\Enums\LogLevel::Error);
                 \Aurora\System\Api::Log($oException->getMessage(), \Aurora\System\Enums\LogLevel::Error);
                 \Aurora\System\Api::LogException($oException, \Aurora\System\Enums\LogLevel::Error);
             }
 
-            if ($response && ($response->getStatusCode() === 200 || $response->getStatusCode() === 201)) {
-                $mResult = json_decode($response->getBody()->getContents());
-            }
+
         }
 
         return $mResult;
@@ -194,7 +194,7 @@ class Manager extends \Aurora\System\Managers\AbstractManager
         if ($sAdminAuthToken) {
             $sSeafileUrl = $this->oModule->oModuleSettings->Url;
             $client = new \GuzzleHttp\Client();
-    
+
             try {
                 $response = $client->request('DELETE', $sSeafileUrl . '/api/v2.1/admin/users/' . $sEmail . '/', [
                     'headers' => [
@@ -202,14 +202,14 @@ class Manager extends \Aurora\System\Managers\AbstractManager
                         'authorization' => 'Bearer ' . $sAdminAuthToken,
                     ],
                 ]);
+
+                if ($response->getStatusCode() === 200 || $response->getStatusCode() === 201) {
+                    $bResult = $response->getBody();
+                }
             } catch (\Exception $oException) {
                 \Aurora\System\Api::Log('Delete account Exception', \Aurora\System\Enums\LogLevel::Error);
                 \Aurora\System\Api::Log($oException->getMessage(), \Aurora\System\Enums\LogLevel::Error);
                 \Aurora\System\Api::LogException($oException, \Aurora\System\Enums\LogLevel::Error);
-            }
-
-            if ($response->getStatusCode() === 200 || $response->getStatusCode() === 201) {
-                $bResult = $response->getBody();
             }
         }
 
@@ -224,8 +224,7 @@ class Manager extends \Aurora\System\Managers\AbstractManager
         if ($sAdminAuthToken) {
             $sSeafileUrl = $this->oModule->oModuleSettings->Url;
             $client = new \GuzzleHttp\Client();
-    
-            $response = null;
+
             try {
                 $response = $client->request('GET', $sSeafileUrl . '/api/v2.1/admin/users/' . $sEmail . '/', [
                     'headers' => [
@@ -234,23 +233,23 @@ class Manager extends \Aurora\System\Managers\AbstractManager
                         'content-type' => 'application/json',
                     ],
                 ]);
+
+                if ($response->getStatusCode() === 200 || $response->getStatusCode() === 201) {
+                    $oResponseBody = json_decode($response->getBody()->getContents());
+                    if (isset($oResponseBody->quota_total)) {
+                        $mResult = $oResponseBody->quota_total / 1000 / 1000;
+                    }
+                }
             } catch (\Exception $oException) {
                 \Aurora\System\Api::Log('Get user account info Exception', \Aurora\System\Enums\LogLevel::Error);
                 \Aurora\System\Api::Log($oException->getMessage(), \Aurora\System\Enums\LogLevel::Error);
                 \Aurora\System\Api::LogException($oException, \Aurora\System\Enums\LogLevel::Error);
             }
-
-            if ($response && ($response->getStatusCode() === 200 || $response->getStatusCode() === 201)) {
-                $oResponseBody = json_decode($response->getBody()->getContents());
-                if (isset($oResponseBody->quota_total)) {
-                    $mResult = $oResponseBody->quota_total / 1000 / 1000;
-                }
-            }
         }
 
         return $mResult;
     }
-    
+
     public function setQuota($sLogin, int $iQuota)
     {
         $bResult = false;
@@ -259,8 +258,6 @@ class Manager extends \Aurora\System\Managers\AbstractManager
         if ($sAdminAuthToken) {
             $sSeafileUrl = $this->oModule->oModuleSettings->Url;
             $client = new \GuzzleHttp\Client();
-    
-            $response = null;
 
             try {
                 $response = $client->request('PUT', $sSeafileUrl . '/api/v2.1/admin/users/' . $sLogin . '/', [
@@ -273,14 +270,14 @@ class Manager extends \Aurora\System\Managers\AbstractManager
                         'content-type' => 'application/json',
                     ],
                 ]);
+
+                if ($response->getStatusCode() === 200 || $response->getStatusCode() === 201) {
+                    $bResult = true;
+                }
             } catch (\Exception $oException) {
                 \Aurora\System\Api::Log('Update user account Exception', \Aurora\System\Enums\LogLevel::Error);
                 \Aurora\System\Api::Log($oException->getMessage(), \Aurora\System\Enums\LogLevel::Error);
                 \Aurora\System\Api::LogException($oException, \Aurora\System\Enums\LogLevel::Error);
-            }
-
-            if ($response  && ($response->getStatusCode() === 200 || $response->getStatusCode() === 201)) {
-                $bResult = true;
             }
         }
 
@@ -290,11 +287,11 @@ class Manager extends \Aurora\System\Managers\AbstractManager
     public function getDownloadLink($link, $headers)
     {
         $client = new \GuzzleHttp\Client();
-        $res = $client->get($link, [
-            'headers' => $headers
+        $response = $client->get($link, [
+            'headers' => $headers,
         ]);
-        if ($res->getStatusCode() === 200) {
-            $resource = $res->getBody();
+        if ($response->getStatusCode() === 200) {
+            $resource = $response->getBody();
             return trim($resource->read($resource->getSize()), '"');
         }
         return '';

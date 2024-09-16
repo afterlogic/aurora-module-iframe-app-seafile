@@ -8,10 +8,11 @@
 namespace Aurora\Modules\IframeAppSeafile;
 
 use Aurora\System\Api;
+
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
  * @license https://afterlogic.com/products/common-licensing Afterlogic Software License
- * @copyright Copyright (c) 2023, Afterlogic Corp.
+ * @copyright Copyright (c) 2024, Afterlogic Corp.
  *
  * @property Settings $oModuleSettings
  *
@@ -21,12 +22,13 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 {
     public $oManager = null;
 
-    public function init() {
+    public function init()
+    {
         $this->oManager = new Manager($this);
-        
-        $this->subscribeEvent('Core::CreateUser::after', array($this, 'onAfterCreateUser'));
-        $this->subscribeEvent('Core::DeleteUser::after', array($this, 'onAfterDeleteUser'));
-        $this->subscribeEvent('Core::Logout::after', array($this, 'onAfterLogout'));
+
+        $this->subscribeEvent('Core::CreateUser::after', [$this, 'onAfterCreateUser']);
+        $this->subscribeEvent('Core::DeleteUser::after', [$this, 'onAfterDeleteUser']);
+        $this->subscribeEvent('Core::Logout::after', [$this, 'onAfterLogout']);
     }
 
     /**
@@ -63,7 +65,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
                 \Aurora\System\Api::getCookiePath(),
                 null,
                 \Aurora\System\Api::getCookieSecure(),
-                true
+                true,
             );
         }
     }
@@ -74,15 +76,15 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
         if ((int) $iUserId > 0) {
             $sPassword = \Illuminate\Support\Str::random(10);
-            
+
             $oAccount = $this->oManager->createAccount($aArgs['PublicId'], $sPassword);
 
             if ($oAccount && isset($oAccount->email)) {
                 $oUser = \Aurora\System\Api::getUserById($iUserId);
                 $oUser->setExtendedProps([
-                    self::GetName() . '::Login' => $oAccount->login_id,
+                    self::GetName() . '::Login' => $oAccount->login_id ?? '',
                     self::GetName() . '::Email' => $oAccount->email,
-                    self::GetName() . '::Password' => \Aurora\System\Utils::EncryptValue($sPassword)
+                    self::GetName() . '::Password' => \Aurora\System\Utils::EncryptValue($sPassword),
                 ]);
                 \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
             }
@@ -93,11 +95,11 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
     {
         if ($mResult) {
             $oUser = Api::getUserById($aArgs['UserId']);
-            
+
             if ($oUser) {
                 $sEmail = $oUser->getExtendedProp(self::GetName() . '::Email');
 
-                if  ($sEmail) {
+                if ($sEmail) {
                     $this->oManager->deleteAccount($sEmail);
                 }
             }
@@ -105,9 +107,9 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
     }
 
     /**
-     * Obtains module settings for authenticated user.
+     * Obtains module settings for authenticated user or superadmin.
      *
-     * @return array
+     * @return array|null
      */
     public function GetSettings()
     {
@@ -115,13 +117,11 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         $oSetting = null;
         $oUser = \Aurora\System\Api::getAuthenticatedUser();
         if ($oUser && ($oUser->isNormalOrTenant() && $this->isEnabledForEntity($oUser) || $oUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin)) {
-            $oSetting = array(
-                'EAuthMode' => (new Enums\AuthMode())->getMap(),
-                'AuthMode' => $this->oModuleSettings->AuthMode,
+            $oSetting = [
                 'Url' => $this->oModuleSettings->Url,
                 'TabName' => $this->oModuleSettings->TabName,
-                'AllowEditSettings' => $this->oModuleSettings->AllowEditSettings,
-            );
+                'AllowUserEditSettings' => $this->oModuleSettings->AllowUserEditSettings,
+            ];
 
             if ($oUser->isNormalOrTenant() && $this->isEnabledForEntity($oUser)) {
                 $oSetting['Email'] = $oUser->getExtendedProp(self::GetName() . '::Email');
@@ -129,9 +129,9 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
                 $oSetting['HasPassword'] = (bool) $oUser->getExtendedProp(self::GetName() . '::Password');
             }
         }
-        
+
         if ($oUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin) {
-            $oSetting = is_array($oSetting) ? $oSetting : array();
+            $oSetting = is_array($oSetting) ? $oSetting : [];
             $oSetting['AdminLogin'] = $this->oModuleSettings->AdminLogin;
             $oSetting['HasAdminPassword'] = (bool) $this->oModuleSettings->AdminPassword;
         }
@@ -148,7 +148,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
      */
     public function UpdateSettings($Email = null, $Login = null, $Password = null)
     {
-        if ($this->oModuleSettings->AllowEditSettings) {
+        if ($this->oModuleSettings->AllowUserEditSettings) {
             \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
             $oUser = \Aurora\System\Api::getAuthenticatedUser();
             if ($oUser) {
@@ -169,21 +169,19 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
     }
 
     /**
-     * Updates module settings by a user.
+     * Updates module settings by a superadmin.
      *
      * @param string $TabName
      * @param string $Url
      * @param string $AdminLogin
      * @param string $AdminPassword
-     * @param int $AuthMode
      * @return bool
      */
-    public function UpdateAdminSettings($TabName = null, $Url = null, $AdminLogin = null, $AdminPassword = null, $AuthMode = null)
+    public function UpdateAdminSettings($TabName = null, $Url = null, $AdminLogin = null, $AdminPassword = null)
     {
         \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
         $this->setConfig('TabName', $TabName);
         $this->setConfig('Url', $Url);
-        $this->setConfig('AuthMode', $AuthMode);
         $this->setConfig('AdminLogin', $AdminLogin);
 
         if ($AdminPassword !== null) {
@@ -195,6 +193,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
     /**
      * Obtains per user settings for superadmin.
+     *
      * @param int $UserId
      * @return array
      */
@@ -206,23 +205,27 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         if ($oUser) {
             $sLogin = $oUser->getExtendedProp(self::GetName() . '::Login');
             $sEmail = $oUser->getExtendedProp(self::GetName() . '::Email');
-            return array(
+            return [
                 'EnableModule' => $this->isEnabledForEntity($oUser),
                 'EmailId' => $sEmail,
                 'Login' => $sLogin,
                 'HasPassword' => (bool) $oUser->getExtendedProp(self::GetName() . '::Password'),
                 'Quota' => (int) $this->oManager->getQuota($sEmail),
-            );
+            ];
         }
 
         return null;
     }
 
     /**
-     * Updaters per user settings for superadmin.
+     * Updaters per user settings by superadmin.
      *
      * @param int $UserId
      * @param bool $EnableModule
+     * @param string $EmailId
+     * @param string $Login
+     * @param string $Password
+     * @param int|null $Quota
      * @return bool
      */
     public function UpdatePerUserSettings($UserId, $EnableModule, $EmailId = '', $Login = '', $Password = '', $Quota = null)
@@ -272,17 +275,19 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
     }
 
     /**
-     * 
+     * Obtains login link.
+     *
+     * @return string
      */
     public function GetLoginLink()
     {
         \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
         $sLink = '';
-        
+
         $oUser = \Aurora\System\Api::getAuthenticatedUser();
-        
-        if ($oUser) {           
+
+        if ($oUser) {
             $sToken = $this->oManager->getUserToken($oUser);
 
             if ($sToken) {
@@ -299,8 +304,9 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
     /**
      * Obtains user password.
+     *
      * @param int $UserId
-     * @return array
+     * @return string|null
      */
     public function GetUserPassword($UserId)
     {
@@ -320,8 +326,9 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
     /**
      * Obtains user password.
+     *
      * @param int $UserId
-     * @return array
+     * @return bool
      */
     public function CreateSeafileAccount($UserId)
     {
@@ -339,9 +346,9 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
             if ($oAccount && isset($oAccount->email)) {
                 $oUser->setExtendedProps([
-                    self::GetName() . '::Login' => $oAccount->login_id,
+                    self::GetName() . '::Login' => $oAccount->login_id ?? '',
                     self::GetName() . '::Email' => $oAccount->email,
-                    self::GetName() . '::Password' => \Aurora\System\Utils::EncryptValue($sPassword)
+                    self::GetName() . '::Password' => \Aurora\System\Utils::EncryptValue($sPassword),
                 ]);
                 $mResult = \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
             }
@@ -351,8 +358,9 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
     }
 
     /**
-     * Obtains user password for superadmin.
-     * @return string|null
+     * The methods sets a cookie with token.
+     *
+     * @return bool
      */
     public function GetUserToken()
     {
@@ -371,13 +379,16 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
                 \Aurora\System\Api::getCookiePath(),
                 null,
                 \Aurora\System\Api::getCookieSecure(),
-                true
+                true,
             );
         }
 
         return !!$mResult;
     }
 
+    /**
+     * Performs a request to Seafile API.
+     */
     public function GetSeafileResponse($Url, $Headers, $PostData = false)
     {
         \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
@@ -389,7 +400,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         }
 
         $client = new \GuzzleHttp\Client();
-
+        $res = null;
         if (is_array($PostData)) {
             $multipart = [];
             foreach ($PostData as $key => $value) {
@@ -403,21 +414,21 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
                     'headers' => $Headers,
                     'multipart' => $multipart,
                 ]);
-            } catch (\Exception $e) {
-                $response = $e->getResponse();
-                return $response ? $response->getBody()->getContents() : '{"error_msg": "' . $e->getMessage() . '"}';
+            } catch (\Exception $oException) {
+                \Aurora\System\Api::Log($oException->getMessage(), \Aurora\System\Enums\LogLevel::Error);
+                \Aurora\System\Api::LogException($oException, \Aurora\System\Enums\LogLevel::Error);
             }
         } else {
             try {
                 $res = $client->get($Url, [
                     'headers' => $Headers,
                 ]);
-            } catch (\Exception $e) {
-                $response = $e->getResponse();
-                return $response ? $response->getBody()->getContents() : '{"error_msg": "' . $e->getMessage() . '"}';
+            } catch (\Exception $oException) {
+                \Aurora\System\Api::Log($oException->getMessage(), \Aurora\System\Enums\LogLevel::Error);
+                \Aurora\System\Api::LogException($oException, \Aurora\System\Enums\LogLevel::Error);
             }
         }
-        if ($res->getStatusCode() === 200 || $res->getStatusCode() === 201) {
+        if ($res && ($res->getStatusCode() === 200 || $res->getStatusCode() === 201)) {
             $resource = $res->getBody();
             return $resource->read($resource->getSize());
         }
@@ -478,8 +489,6 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         return $res->getStatusCode() === 200;
     }
 
-
-
     public function SaveSeafilesAsTempfiles($UserId, $Files, $Headers)
     {
         \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
@@ -508,7 +517,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
             }
 
             $res = $client->get($downloadLink, [
-                'headers' => $Headers
+                'headers' => $Headers,
             ]);
             $fileResource = null;
             $size = 0;
@@ -522,19 +531,19 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
             $filecacheManager = new \Aurora\System\Managers\Filecache();
             if (is_resource($fileResource) && $filecacheManager->putFile($userUUID, $tempName, $fileResource)) {
-                $newFileHash = \Aurora\System\Api::EncodeKeyValues(array(
+                $newFileHash = \Aurora\System\Api::EncodeKeyValues([
                     'TempFile' => true,
                     'UserId' => $UserId,
                     'Name' => $fileName,
-                    'TempName' => $tempName
-                ));
+                    'TempName' => $tempName,
+                ]);
 
                 $actions = [
                     'view' => [
-                        'url' => '?file-cache/' . $newFileHash . '/view'
+                        'url' => '?file-cache/' . $newFileHash . '/view',
                     ],
                     'download' => [
-                        'url' => '?file-cache/' . $newFileHash
+                        'url' => '?file-cache/' . $newFileHash,
                     ],
                 ];
 
@@ -545,7 +554,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
                     'Hash' => $fileHash,
                     'NewHash' => $newFileHash,
                     'MimeType' => \MailSo\Base\Utils::MimeContentType($fileName),
-                    'Actions' => $actions
+                    'Actions' => $actions,
                 ];
 
                 @fclose($fileResource);

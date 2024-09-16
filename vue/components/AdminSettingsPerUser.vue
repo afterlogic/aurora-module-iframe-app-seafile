@@ -11,19 +11,19 @@
               <q-item-label v-t="'IFRAMEAPPSEAFILE.LABEL_ALLOW_IFRAMEAPP'" />
             </q-checkbox>
           </div>
-          <div class="row q-mt-md" v-if="isAuthModeCredentialsSetByAdmin">
+          <div class="row q-mt-md">
             <div class="col-2 q-my-sm" v-t="'COREWEBCLIENT.LABEL_EMAIL'"></div>
             <div class="col-5">
               <q-input outlined dense bg-color="white" v-model="emailId" ref="emailId" @keyup.enter="updateSettingsForEntity" />
             </div>
           </div>
-          <div class="row q-mt-md" v-if="isAuthModeCredentialsSetByAdmin">
+          <div class="row q-mt-md">
             <div class="col-2 q-my-sm" v-t="'COREWEBCLIENT.LABEL_LOGIN'"></div>
             <div class="col-5">
               <q-input outlined dense bg-color="white" v-model="login" ref="login" @keyup.enter="updateSettingsForEntity" />
             </div>
           </div>
-          <div class="row items-center q-mt-md" v-if="isAuthModeCredentialsSetByAdmin">
+          <div class="row items-center q-mt-md">
             <div class="col-2 q-my-sm" v-t="'COREWEBCLIENT.LABEL_PASSWORD'"></div>
             <div class="col-5">
               <q-input
@@ -117,7 +117,6 @@ export default {
       loading: false,
       enableIframeApp: false,
       enableIframeAppFromServer: false,
-      isAuthModeCredentialsSetByAdmin: settings.isAuthModeCredentialsSetByAdmin(),
       emailId: '',
       login: '',
       password: '',
@@ -189,13 +188,11 @@ export default {
           TenantId: this.user.tenantId,
           EnableModule: typesUtils.pBool(this.enableIframeApp),
           Quota: typesUtils.pInt(this.quota),
+          EmailId: this.emailId.trim(),
+          Login: this.login.trim(),
         }
-        if (this.isAuthModeCredentialsSetByAdmin) {
-          parameters.EmailId = this.emailId.trim()
-          parameters.Login = this.login.trim()
-          if (this.password !== FAKE_PASS) {
-            parameters.Password = this.password.trim()
-          }
+        if (this.password !== FAKE_PASS) {
+          parameters.Password = this.password.trim()
         }
         webApi
           .sendRequest({

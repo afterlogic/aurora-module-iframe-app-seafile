@@ -54,7 +54,7 @@ CMainView.prototype.onShow = function ()
 		sAppHash = Settings.TabName !== '' ?  TextUtils.getUrlFriendlyName(Settings.TabName) : Settings.HashModuleName
 	;
 
-	if (Settings.AllowEditSettings && !(Settings.Login !== '' && Settings.HasPassword))
+	if (Settings.AllowUserEditSettings && !(Settings.Login !== '' && Settings.HasPassword))
 	{
 		Routing.setHash(['settings', sAppHash]);
 		Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_EMPTY_LOGIN_RASSWORD', {'TABNAME': Settings.TabName}));

@@ -13,8 +13,6 @@ module.exports = function (oAppData) {
 	
 	Settings.init(oAppData)
 	
-	require('modules/%ModuleName%/js/enums.js')
-	
 	const sAppHash = Settings.TabName ? TextUtils.getUrlFriendlyName(Settings.TabName) : Settings.HashModuleName
 	
 	if (App.isUserNormalOrTenant() && Settings.Url && Settings.Login) {
@@ -24,7 +22,7 @@ module.exports = function (oAppData) {
 			}
 		}
 
-		// this requiest sets a seafile_token cookie
+		// this request sets a seafile_token cookie
 		if (App.isUserNormalOrTenant()) {
 			Ajax.send(
 				Settings.ServerModuleName,
@@ -43,7 +41,7 @@ module.exports = function (oAppData) {
 			 */
 			start: function (ModulesManager) {
 
-				if (Settings.AllowEditSettings) {
+				if (Settings.AllowUserEditSettings) {
 					ModulesManager.run('SettingsWebclient', 'registerSettingsTab', [
 						function () { return require('modules/%ModuleName%/js/views/UserSettingsFormView.js'); },
 						sAppHash,
@@ -84,7 +82,7 @@ module.exports = function (oAppData) {
 			getScreens: function () {
 				const oScreens = {}
 				
-				if (Settings.AuthMode !== Enums.IframeAppSeafileAuthMode.CustomCredentialsSetByAdmin || (Settings.Login !== '' && Settings.HasPassword)) {
+				if (Settings.Login !== '' && Settings.HasPassword) {
 					oScreens[sAppHash] = function () {
 						return require('modules/%ModuleName%/js/views/MainView.js');
 					}
@@ -104,7 +102,7 @@ module.exports = function (oAppData) {
 					oHeaderEntry = {}
 				;
 
-				if (Settings.AuthMode !== Enums.IframeAppSeafileAuthMode.CustomCredentialsSetByAdmin || (Settings.Login !== '' && Settings.HasPassword)) {
+				if (Settings.Login !== '' && Settings.HasPassword) {
 					if (HeaderItemView === null) {
 						HeaderItemView = new CHeaderItemView(Settings.TabName || TextUtils.i18n('%MODULENAME%/LABEL_SETTINGS_TAB'))
 					}

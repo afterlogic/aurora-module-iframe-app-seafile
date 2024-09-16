@@ -13,8 +13,10 @@ use Aurora\Modules\IframeAppSeafile\Enums;
 /**
  * @property bool $Disabled
  * @property string $TabName
- * @property int $AuthMode
  * @property string $Url
+ * @property string $AdminLogin
+ * @property string $AdminPassword
+ * @property bool $AllowUserEditSettings
  */
 
 class Settings extends \Aurora\System\Module\Settings
@@ -34,23 +36,11 @@ class Settings extends \Aurora\System\Module\Settings
                 null,
                 "Denotes app name used in the interface for the integrated app",
             ),
-            "AuthMode" => new SettingsProperty(
-                Enums\AuthMode::NoAuthentication,
-                "spec",
-                Enums\AuthMode::class,
-                "Defines the mode of sending authentication data into the integrated app",
-            ),
             "Url" => new SettingsProperty(
                 "",
                 "string",
                 null,
                 "URL of the integrated app",
-            ),
-            "AllowEditSettings" => new SettingsProperty(
-                true,
-                "boolean",
-                null,
-                "denotes if users can edit settings",
             ),
             "AdminLogin" => new SettingsProperty(
                 "",
@@ -63,6 +53,12 @@ class Settings extends \Aurora\System\Module\Settings
                 "string",
                 null,
                 "",
+            ),
+            "AllowUserEditSettings" => new SettingsProperty(
+                false,
+                "boolean",
+                null,
+                "denotes if users can edit settings",
             ),
         ];
     }
