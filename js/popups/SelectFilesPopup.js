@@ -54,6 +54,11 @@ function CSelectFilesPopup()
 			label: TextUtils.i18n('%MODULENAME%/LABEL_SHARED_STORAGE'),
 			name: 'srepo',
 			iconCssClass: 'typeshared'
+		},
+		{
+			label: TextUtils.i18n('%MODULENAME%/LABEL_SHARED_GROUP_STORAGE'),
+			name: 'grepo',
+			iconCssClass: 'typeshared'
 		}
 	];
 	this.allowedStorages = ko.computed(function () {
@@ -138,6 +143,7 @@ CSelectFilesPopup.prototype.onOpen = function ({ selectFilesMode, callback })
 			});
 			this.mineRepos = allRepos.filter(repo => repo.type === 'repo');
 			this.sharedRepos = allRepos.filter(repo => repo.type === 'srepo');
+			this.sharedGroupRepos = allRepos.filter(repo => repo.type === 'grepo');
 			this.populateCurrentRepos();
 		}
 	});
@@ -254,6 +260,12 @@ CSelectFilesPopup.prototype.populateCurrentRepos = function ()
 			currentRepos = this.sharedRepos;
 		} else {
 			currentRepos = this.sharedRepos.filter(repo => repo.permission === 'rw');
+		}
+	} else if (this.selectedStorage() === 'grepo') {
+		if (this.selectFilesMode()) {
+			currentRepos = this.sharedGroupRepos;
+		} else {
+			currentRepos = this.sharedGroupRepos.filter(repo => repo.permission === 'rw');
 		}
 	}
 	this.currentRepos(currentRepos);
