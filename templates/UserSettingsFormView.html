@@ -11,7 +11,7 @@
 				</span>
 			</div>
 			<div class="row">
-				<span class="label" data-bind="i18n: {'key': 'COREWEBCLIENT/LABEL_LOGIN'}"></span>
+				<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_LOGIN_ID'}"></span>
 				<span class="value">
 					<input class="input" type="text" data-bind="value: login, valueUpdate: 'afterkeydown', onEnter: save">
 				</span>
@@ -24,6 +24,12 @@
 					<span class="button contour_button" data-bind="click: showPassword">
 						<span data-bind="i18n: {'key': '%MODULENAME%/LABEL_SHOW_PASSWORD'}"></span>
 					</span>
+				</span>
+			</div>
+			<div class="row">
+				<span class="label" data-bind="i18n: {'key': 'COREWEBCLIENT/LABEL_NAME'}"></span>
+				<span class="value">
+					<input class="input" type="text" data-bind="value: name, valueUpdate: 'afterkeydown', onEnter: save">
 				</span>
 			</div>
 		</div>

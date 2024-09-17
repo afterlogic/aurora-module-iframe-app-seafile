@@ -56,6 +56,12 @@
               <q-input outlined dense bg-color="white" v-model="quota" ref="quota" @keyup.enter="updateSettingsForEntity" />
             </div>
           </div>
+          <div class="row q-mt-md">
+            <div class="col-2 q-my-sm" v-t="'COREWEBCLIENT.LABEL_NAME'"></div>
+            <div class="col-5">
+              <q-input outlined dense bg-color="white" v-model="name" ref="emailId" @keyup.enter="updateSettingsForEntity" />
+            </div>
+          </div>
         </q-card-section>
       </q-card>
       <div class="q-pt-md text-right">
@@ -100,8 +106,6 @@ import ConfirmDialog from 'src/components/ConfirmDialog'
 
 import cache from 'src/cache'
 
-import settings from '../settings'
-
 const FAKE_PASS = '******'
 
 export default {
@@ -121,6 +125,7 @@ export default {
       login: '',
       password: '',
       quota: 100,
+      name: '',
       isCreateAccountAllowed: false,
     }
   },
@@ -187,9 +192,10 @@ export default {
           UserId: this.user?.id,
           TenantId: this.user.tenantId,
           EnableModule: typesUtils.pBool(this.enableIframeApp),
+          Email: this.emailId.trim(),
+          LoginId: this.login.trim(),
+          Name: this.name.trim(),
           Quota: typesUtils.pInt(this.quota),
-          EmailId: this.emailId.trim(),
-          Login: this.login.trim(),
         }
         if (this.password !== FAKE_PASS) {
           parameters.Password = this.password.trim()
@@ -242,6 +248,7 @@ export default {
               this.login = result.Login || ''
               this.password = result.HasPassword ? FAKE_PASS : ''
               this.quota = result.Quota || 0
+              this.name = result.Name || ''
 
               this.isCreateAccountAllowed = this.emailId === '' && this.login === ''
             }

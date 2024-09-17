@@ -72,11 +72,11 @@ class Manager extends \Aurora\System\Managers\AbstractManager
     {
         if (!$this->sUserAuthToken || $bForce) {
 
-            $sLogin = $oUser->getExtendedProp($this->oModule->GetName() . '::Login');
+            $sEmail = $oUser->getExtendedProp($this->oModule->GetName() . '::Email');
             $sPassword = \Aurora\System\Utils::DecryptValue($oUser->getExtendedProp($this->oModule->GetName() . '::Password'));
 
-            if ($sLogin && $sPassword) {
-                $token = $this->authenticate($sLogin, $sPassword);
+            if ($sEmail && $sPassword) {
+                $token = $this->authenticate($sEmail, $sPassword);
 
                 if ($token) {
                     $this->sUserAuthToken = $token;
@@ -216,41 +216,40 @@ class Manager extends \Aurora\System\Managers\AbstractManager
         return $bResult;
     }
 
-    public function getQuota($sEmail)
+    public function getAccountInfo($sEmail)
     {
-        $mResult = false;
+        $mResult = null;
 
-        $sAdminAuthToken = $this->getAdminToken();
-        if ($sAdminAuthToken) {
-            $sSeafileUrl = $this->oModule->oModuleSettings->Url;
-            $client = new \GuzzleHttp\Client();
+        if ($sEmail) {
+            $sAdminAuthToken = $this->getAdminToken();
+            if ($sAdminAuthToken) {
+                $sSeafileUrl = $this->oModule->oModuleSettings->Url;
+                $client = new \GuzzleHttp\Client();
 
-            try {
-                $response = $client->request('GET', $sSeafileUrl . '/api/v2.1/admin/users/' . $sEmail . '/', [
-                    'headers' => [
-                        'accept' => 'application/json',
-                        'authorization' => 'Bearer ' . $sAdminAuthToken,
-                        'content-type' => 'application/json',
-                    ],
-                ]);
+                try {
+                    $response = $client->request('GET', $sSeafileUrl . '/api/v2.1/admin/users/' . $sEmail . '/', [
+                        'headers' => [
+                            'accept' => 'application/json',
+                            'authorization' => 'Bearer ' . $sAdminAuthToken,
+                            'content-type' => 'application/json',
+                        ],
+                    ]);
 
-                if ($response->getStatusCode() === 200 || $response->getStatusCode() === 201) {
-                    $oResponseBody = json_decode($response->getBody()->getContents());
-                    if (isset($oResponseBody->quota_total)) {
-                        $mResult = $oResponseBody->quota_total / 1000 / 1000;
+                    if ($response->getStatusCode() === 200 || $response->getStatusCode() === 201) {
+                        $mResult = json_decode($response->getBody()->getContents());
                     }
+                } catch (\Exception $oException) {
+                    \Aurora\System\Api::Log('Get user account info Exception', \Aurora\System\Enums\LogLevel::Error);
+                    \Aurora\System\Api::Log($oException->getMessage(), \Aurora\System\Enums\LogLevel::Error);
+                    \Aurora\System\Api::LogException($oException, \Aurora\System\Enums\LogLevel::Error);
                 }
-            } catch (\Exception $oException) {
-                \Aurora\System\Api::Log('Get user account info Exception', \Aurora\System\Enums\LogLevel::Error);
-                \Aurora\System\Api::Log($oException->getMessage(), \Aurora\System\Enums\LogLevel::Error);
-                \Aurora\System\Api::LogException($oException, \Aurora\System\Enums\LogLevel::Error);
             }
         }
 
         return $mResult;
     }
 
-    public function setQuota($sLogin, int $iQuota)
+    public function updateAccountInfo($sEmail, $LoginId, $Name, $Quota, $Password)
     {
         $bResult = false;
 
@@ -259,25 +258,51 @@ class Manager extends \Aurora\System\Managers\AbstractManager
             $sSeafileUrl = $this->oModule->oModuleSettings->Url;
             $client = new \GuzzleHttp\Client();
 
-            try {
-                $response = $client->request('PUT', $sSeafileUrl . '/api/v2.1/admin/users/' . $sLogin . '/', [
-                    'json' => [
-                        'quota_total' => $iQuota,
-                    ],
-                    'headers' => [
-                        'accept' => 'application/json',
-                        'authorization' => 'Bearer ' . $sAdminAuthToken,
-                        'content-type' => 'application/json',
-                    ],
-                ]);
+            $oAccountInfo = $this->getAccountInfo($sEmail);
+            $sCurrentLoginId = $oAccountInfo->login_id ?? '';
+            $sName = $oAccountInfo->name ?? '';
+            $iQuota = isset($oAccountInfo->quota_total) ? (int) $oAccountInfo->quota_total / 1000 / 1000 : 0;
+            $iQuota = $iQuota > 0 ? $iQuota : 0;
 
-                if ($response->getStatusCode() === 200 || $response->getStatusCode() === 201) {
-                    $bResult = true;
+            $aParams = [];
+
+            if ($LoginId !== null && $sCurrentLoginId !== $LoginId) {
+                $aParams['login_id'] = $LoginId;
+            }
+
+            if ($Name !== null && $sName !== $Name) {
+                $aParams['name'] = $Name;
+            }
+
+            if ($Quota !== null && $iQuota !== $Quota) {
+                $aParams['quota_total'] = $Quota;
+            }
+
+            if ($Password !== null) {
+                $aParams['password'] = $Password;
+            }
+
+            if (!empty($aParams)) {
+                try {
+                    $response = $client->request('PUT', $sSeafileUrl . '/api/v2.1/admin/users/' . $sEmail . '/', [
+                        'json' => $aParams,
+                        'headers' => [
+                            'accept' => 'application/json',
+                            'authorization' => 'Bearer ' . $sAdminAuthToken,
+                            'content-type' => 'application/json',
+                        ],
+                    ]);
+
+                    if ($response->getStatusCode() === 200 || $response->getStatusCode() === 201) {
+                        $bResult = true;
+                    }
+                } catch (\Exception $oException) {
+                    \Aurora\System\Api::Log('Update user account Exception: ' . $sEmail, \Aurora\System\Enums\LogLevel::Error);
+                    \Aurora\System\Api::Log($oException->getMessage(), \Aurora\System\Enums\LogLevel::Error);
+                    \Aurora\System\Api::LogException($oException, \Aurora\System\Enums\LogLevel::Error);
                 }
-            } catch (\Exception $oException) {
-                \Aurora\System\Api::Log('Update user account Exception', \Aurora\System\Enums\LogLevel::Error);
-                \Aurora\System\Api::Log($oException->getMessage(), \Aurora\System\Enums\LogLevel::Error);
-                \Aurora\System\Api::LogException($oException, \Aurora\System\Enums\LogLevel::Error);
+            } else {
+                $bResult = true;
             }
         }
 

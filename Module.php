@@ -82,7 +82,6 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
             if ($oAccount && isset($oAccount->email)) {
                 $oUser = \Aurora\System\Api::getUserById($iUserId);
                 $oUser->setExtendedProps([
-                    self::GetName() . '::Login' => $oAccount->login_id ?? '',
                     self::GetName() . '::Email' => $oAccount->email,
                     self::GetName() . '::Password' => \Aurora\System\Utils::EncryptValue($sPassword),
                 ]);
@@ -100,7 +99,14 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
                 $sEmail = $oUser->getExtendedProp(self::GetName() . '::Email');
 
                 if ($sEmail) {
-                    $this->oManager->deleteAccount($sEmail);
+                    $bResult = $this->oManager->deleteAccount($sEmail);
+
+                    if ($bResult) {
+                        $oUser->unsetExtendedProp(self::GetName() . '::Email');
+                        $oUser->unsetExtendedProp(self::GetName() . '::Password');
+
+                        \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+                    }
                 }
             }
         }
@@ -125,8 +131,15 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
             if ($oUser->isNormalOrTenant() && $this->isEnabledForEntity($oUser)) {
                 $oSetting['Email'] = $oUser->getExtendedProp(self::GetName() . '::Email');
-                $oSetting['Login'] = $oUser->getExtendedProp(self::GetName() . '::Login');
+
+                $oAccountInfo = $this->oManager->getAccountInfo($oSetting['Email']);
+
+                $sLoginId = $oAccountInfo->login_id ?? '';
+                $sName = $oAccountInfo->name ?? '';
+
+                $oSetting['Login'] = $sLoginId;
                 $oSetting['HasPassword'] = (bool) $oUser->getExtendedProp(self::GetName() . '::Password');
+                $oSetting['Name'] = $sName;
             }
         }
 
@@ -147,26 +160,24 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
      * @param string $Password
      * @return bool
      */
-    public function UpdateSettings($Email = null, $Login = null, $Password = null)
+    public function UpdateSettings($Email = null, $Password = null, $Login = null, $Name = null)
     {
+        \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+
+        $bResult = false;
+
         if ($this->oModuleSettings->AllowUserEditSettings) {
             \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
             $oUser = \Aurora\System\Api::getAuthenticatedUser();
             if ($oUser) {
-                if ($Email !== null) {
-                    $oUser->setExtendedProp(self::GetName() . '::Email', $Email);
-                }
-                if ($Login !== null) {
-                    $oUser->setExtendedProp(self::GetName() . '::Login', $Login);
-                }
-                if ($Password !== null) {
-                    $oUser->setExtendedProp(self::GetName() . '::Password', \Aurora\System\Utils::EncryptValue($Password));
-                }
-                return \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+                \Aurora\System\Api::skipCheckUserRole(true);
+                $bModuleEnabled = $this->isEnabledForEntity($oUser);
+                $bResult = $this->UpdatePerUserSettings($oUser->Id, $bModuleEnabled, $Email, $Password, $Login, $Name);
+                \Aurora\System\Api::skipCheckUserRole(false);
             }
         }
 
-        return false;
+        return $bResult;
     }
 
     /**
@@ -206,14 +217,21 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
         $oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserWithoutRoleCheck($UserId);
         if ($oUser) {
-            $sLogin = $oUser->getExtendedProp(self::GetName() . '::Login');
             $sEmail = $oUser->getExtendedProp(self::GetName() . '::Email');
+
+            $oAccountInfo = $this->oManager->getAccountInfo($sEmail);
+            $sLoginId = $oAccountInfo->login_id ?? '';
+            $sName = $oAccountInfo->name ?? '';
+            $iQuota = isset($oAccountInfo->quota_total) ? (int) $oAccountInfo->quota_total / 1000 / 1000 : 0;
+            $iQuota = $iQuota > 0 ? $iQuota : 0;
+
             return [
                 'EnableModule' => $this->isEnabledForEntity($oUser),
                 'EmailId' => $sEmail,
-                'Login' => $sLogin,
+                'Login' => $sLoginId,
                 'HasPassword' => (bool) $oUser->getExtendedProp(self::GetName() . '::Password'),
-                'Quota' => (int) $this->oManager->getQuota($sEmail),
+                'Quota' => $iQuota,
+                'Name' => $sName,
             ];
         }
 
@@ -225,13 +243,13 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
      *
      * @param int $UserId
      * @param bool $EnableModule
-     * @param string $EmailId
-     * @param string $Login
+     * @param string $Email
+     * @param string $LoginId
      * @param string $Password
      * @param int|null $Quota
      * @return bool
      */
-    public function UpdatePerUserSettings($UserId, $EnableModule, $EmailId = '', $Login = '', $Password = '', $Quota = null)
+    public function UpdatePerUserSettings($UserId, $EnableModule, $Email = '', $Password = null, $LoginId = null, $Name = null, $Quota = null)
     {
         \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
 
@@ -241,36 +259,32 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         if ($oUser) {
             $this->updateEnabledForEntity($oUser, $EnableModule);
 
-            $bNeedUpdateUser = false;
+            $bEmailChanged = false;
+            $bPasswordChanged = false;
             $sCurrentEmail = $oUser->getExtendedProp(self::GetName() . '::Email');
-            if ($sCurrentEmail !== $Login) {
-                $oUser->setExtendedProp(self::GetName() . '::Email', $EmailId);
-                $bNeedUpdateUser = true;
-            }
-
-            $sCurrentLogin = $oUser->getExtendedProp(self::GetName() . '::Login');
-            if ($sCurrentLogin !== $Login) {
-                // TODO save new login (email) in Seafile
-                // https://seafile-api.readme.io/reference/put_api-v2-1-admin-update-user-ccnet-email
-                $oUser->setExtendedProp(self::GetName() . '::Login', $Login);
-                $bNeedUpdateUser = true;
+            if ($sCurrentEmail !== $Email) {
+                $oUser->setExtendedProp(self::GetName() . '::Email', $Email);
+                $bEmailChanged = true;
             }
 
             $sCurrentPassword = \Aurora\System\Utils::DecryptValue($oUser->getExtendedProp(self::GetName() . '::Password'));
-            if ($sCurrentPassword !== $Password) {
+            if ($Password !== null && $sCurrentPassword !== $Password) {
                 $oUser->setExtendedProp(self::GetName() . '::Password', \Aurora\System\Utils::EncryptValue($Password));
-                $bNeedUpdateUser = true;
+                $bPasswordChanged = true;
+            } else {
+                // reset password value to avoid unnecessary password updating
+                $Password = null;
             }
 
-            if ($bNeedUpdateUser) {
+            if ($bEmailChanged || $bPasswordChanged) {
                 $bResult = \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
             } else {
                 $bResult = true;
             }
 
             $sEmail = $oUser->getExtendedProp(self::GetName() . '::Email');
-            if (is_numeric($Quota) && !empty($sEmail)) {
-                $bResult = $this->oManager->setQuota($sEmail, (int) $Quota);
+            if (!empty($sEmail) && (is_numeric($Quota) || $LoginId !== null || $Name !== null || $bPasswordChanged)) {
+                $bResult = $this->oManager->updateAccountInfo($sEmail, $LoginId, $Name, $Quota, $Password);
             }
         }
 
@@ -343,13 +357,12 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
         $oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserWithoutRoleCheck($UserId);
 
-        if ($oUser && empty($oUser->getExtendedProp(self::GetName() . '::Email')) && empty($oUser->getExtendedProp(self::GetName() . '::Login'))) {
+        if ($oUser && empty($oUser->getExtendedProp(self::GetName() . '::Email'))) {
             $sPassword = \Illuminate\Support\Str::random(10);
             $oAccount = $this->oManager->createAccount($oUser['PublicId'], $sPassword);
 
             if ($oAccount && isset($oAccount->email)) {
                 $oUser->setExtendedProps([
-                    self::GetName() . '::Login' => $oAccount->login_id ?? '',
                     self::GetName() . '::Email' => $oAccount->email,
                     self::GetName() . '::Password' => \Aurora\System\Utils::EncryptValue($sPassword),
                 ]);

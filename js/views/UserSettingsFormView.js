@@ -29,6 +29,7 @@ function CUserSettingsFormView()
 	this.email = ko.observable(Settings.Email);
 	this.login = ko.observable(Settings.Login);
 	this.password = ko.observable(Settings.HasPassword ? FAKE_PASS : '');
+	this.name = ko.observable(Settings.Name);
 	this.bAllowUserEditSettings = Settings.AllowUserEditSettings;
 
 	this.visiblePassword = ko.observable('');
@@ -52,7 +53,8 @@ CUserSettingsFormView.prototype.getCurrentValues = function ()
 	return [
 		this.email(),
 		this.login(),
-		this.password()
+		this.password(),
+		this.name()
 	];
 };
 
@@ -64,6 +66,7 @@ CUserSettingsFormView.prototype.revertGlobalValues = function ()
 	this.email(Settings.Email);
 	this.login(Settings.Login);
 	this.password(Settings.HasPassword ? FAKE_PASS : '');
+	this.name(Settings.Name);
 };
 
 /**
@@ -76,6 +79,7 @@ CUserSettingsFormView.prototype.getParametersForSave = function ()
 	const parameters = {
 		Email: this.email().trim(),
 		Login: this.login().trim(),
+		Name: this.name().trim(),
 	};
 	if (this.password() !== FAKE_PASS) {
 		parameters.Password = this.password().trim();
@@ -95,7 +99,7 @@ CUserSettingsFormView.prototype.validateBeforeSave = function ()
  */
 CUserSettingsFormView.prototype.applySavedValues = function (oParameters)
 {
-	Settings.update(oParameters.Email, oParameters.Login, true);
+	Settings.update(oParameters.Email, oParameters.Login, oParameters.Name, true);
 };
 
 CUserSettingsFormView.prototype.hidePassword = function ()

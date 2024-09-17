@@ -17,6 +17,7 @@ module.exports = {
 	Email: '',
 	Login: '',
 	HasPassword: false,
+	Name: '',
 	
 	/**
 	 * Initializes settings from AppData object sections.
@@ -31,12 +32,13 @@ module.exports = {
 		{
 			this.AllowUserEditSettings = Types.pBool(oAppDataSection.AllowUserEditSettings, this.AllowUserEditSettings);
 			
+			this.TabName = Types.pString(oAppDataSection.TabName, this.TabName);
 			this.Url = Types.pString(oAppDataSection.Url, this.Url);
 			this.Host = Types.pString(oAppDataSection.Url, this.Url);
 			this.Email = Types.pString(oAppDataSection.Email, this.Email);
 			this.Login = Types.pString(oAppDataSection.Login, this.Login);
 			this.HasPassword = Types.pBool(oAppDataSection.HasPassword, this.HasPassword);
-			this.TabName = Types.pString(oAppDataSection.TabName, this.TabName);
+			this.Name = Types.pString(oAppDataSection.Name, this.Name);
 		}
 	},
 	
@@ -45,12 +47,14 @@ module.exports = {
 	 * 
 	 * @param {string} sEmail New value of setting 'Email'
 	 * @param {string} sLogin New value of setting 'Login'
+	 * @param {string} sName New value of setting 'Name'
 	 * @param {boolean} bHasPassword Indicates if user has custom password
 	 */
-	update: function (sEmail, sLogin, bHasPassword)
+	update: function (sEmail, sLogin, sName, bHasPassword)
 	{
 		this.Email = sEmail;
 		this.Login = sLogin;
 		this.HasPassword = bHasPassword;
+		this.Name = sName;
 	},
 };
