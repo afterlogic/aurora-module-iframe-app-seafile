@@ -29,6 +29,15 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         $this->subscribeEvent('Core::CreateUser::after', [$this, 'onAfterCreateUser']);
         $this->subscribeEvent('Core::DeleteUser::after', [$this, 'onAfterDeleteUser']);
         $this->subscribeEvent('Core::Logout::after', [$this, 'onAfterLogout']);
+
+        $this->subscribeEvent('Core::CreateGroup::after', array($this, 'onAfterCreateGroup'));
+        $this->subscribeEvent('Core::DeleteGroup::before', array($this, 'onBeforeDeleteGroup'));
+        $this->subscribeEvent('Core::AddUsersToGroup::after', array($this, 'onAfterAddUsersToGroup'));
+        $this->subscribeEvent('Core::RemoveUsersFromGroup::after', array($this, 'onAfterRemoveUsersFromGroup'));
+
+        // GetGroupUsers
+        // AddUsersToGroup($GroupId, $UserIds)
+        // RemoveUsersFromGroup($GroupId, $UserIds)
     }
 
     /**
@@ -107,6 +116,81 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
                         \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
                     }
+                }
+            }
+        }
+    }
+
+    public function onAfterCreateGroup($aArgs, &$mResult)
+    {
+        $iGroupId = isset($mResult) && (int) $mResult > 0 ? $mResult : 0;
+
+        if ((int) $iGroupId > 0) {
+            
+            $oAuroraGroup = \Aurora\Modules\Core\Module::Decorator()->GetGroup($iGroupId);
+            
+            if ($oAuroraGroup) {
+                $oSeafileGroup = $this->oManager->createGroup($oAuroraGroup->Name);
+
+                if ($oSeafileGroup) {
+                    $oAuroraGroup->setExtendedProp(self::GetName() . '::GroupId', $oSeafileGroup->id);
+                    $oAuroraGroup->save();
+                }
+            }
+
+        }
+    }
+
+    public function onBeforeDeleteGroup($aArgs, &$mResult)
+    {
+        $oAuroraGroup = \Aurora\Modules\Core\Module::Decorator()->GetGroup($aArgs['GroupId']);
+            
+        if ($oAuroraGroup) {
+            $iGroupId = $oAuroraGroup->getExtendedProp(self::GetName() . '::GroupId');
+
+            if  ($iGroupId) {
+                $this->oManager->deleteGroup($iGroupId);
+            }
+        }
+    }
+
+    public function onAfterAddUsersToGroup($aArgs, &$mResult)
+    {
+        if ($mResult) {
+            $iAuroraGroupId = (int) $aArgs['GroupId'] ?? 0;
+            $aUserIds = $aArgs['UserIds'] ?? [];
+    
+            if ($iAuroraGroupId > 0 && is_array($aUserIds) && count($aUserIds) > 0) {
+                
+                $oAuroraGroup = \Aurora\Modules\Core\Module::Decorator()->GetGroup($iAuroraGroupId);
+                
+                if ($oAuroraGroup && $oAuroraGroup->getExtendedProp(self::GetName() . '::GroupId')) {
+                    $iGroupId = $oAuroraGroup->getExtendedProp(self::GetName() . '::GroupId');
+
+                    $aSeafileAccountEmails = $this->oManager->getAccountEmailsByUserIds($aUserIds); 
+                    
+                    $mResult = $this->oManager->addMembersToGroup($iGroupId, $aSeafileAccountEmails);
+                }
+            }
+        }
+    }
+
+    public function onAfterRemoveUsersFromGroup($aArgs, &$mResult)
+    {
+        if ($mResult) {
+            $iAuroraGroupId = (int) $aArgs['GroupId'] ?? 0;
+            $aUserIds = $aArgs['UserIds'] ?? [];
+    
+            if ($iAuroraGroupId > 0 && is_array($aUserIds) && count($aUserIds) > 0) {
+                
+                $oAuroraGroup = \Aurora\Modules\Core\Module::Decorator()->GetGroup($iAuroraGroupId);
+                
+                if ($oAuroraGroup && $oAuroraGroup->getExtendedProp(self::GetName() . '::GroupId')) {
+                    $iGroupId = $oAuroraGroup->getExtendedProp(self::GetName() . '::GroupId');
+
+                    $aSeafileAccountEmails = $this->oManager->getAccountEmailsByUserIds($aUserIds); 
+                    
+                    $mResult = $this->oManager->removeMembersToGroup($iGroupId, $aSeafileAccountEmails);
                 }
             }
         }
@@ -391,11 +475,13 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
             @\setcookie(
                 'seafile_token',
                 (string) $mResult,
-                0, //\strtotime('+1 day'),
-                \Aurora\System\Api::getCookiePath(),
-                null,
-                \Aurora\System\Api::getCookieSecure(),
-                true,
+                [
+                    'expires' => 0,  //\strtotime('+1 day'),
+                    'path' => \Aurora\System\Api::getCookiePath(),
+                    'domain' => '',
+                    'secure' => \Aurora\System\Api::getCookieSecure(),
+                    'httponly' => true,
+                ]
             );
         }
 

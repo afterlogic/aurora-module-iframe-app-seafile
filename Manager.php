@@ -179,8 +179,6 @@ class Manager extends \Aurora\System\Managers\AbstractManager
                 \Aurora\System\Api::Log($oException->getMessage(), \Aurora\System\Enums\LogLevel::Error);
                 \Aurora\System\Api::LogException($oException, \Aurora\System\Enums\LogLevel::Error);
             }
-
-
         }
 
         return $mResult;
@@ -320,5 +318,179 @@ class Manager extends \Aurora\System\Managers\AbstractManager
             return trim($resource->read($resource->getSize()), '"');
         }
         return '';
+    }
+
+    public function createGroup($sName)
+    {
+        $mResult = false;
+
+        $sAdminAuthToken = $this->getAdminToken();
+        if ($sAdminAuthToken) {
+            $sSeafileUrl = $this->oModule->oModuleSettings->Url;
+            $client = new \GuzzleHttp\Client();
+
+            try {
+                $response = $client->request('POST', $sSeafileUrl . '/api/v2.1/admin/groups/', [
+                    'json' => [
+                        'group_name' => $sName,
+                    ],
+                    'headers' => [
+                        'accept' => 'application/json',
+                        'authorization' => 'Bearer ' . $sAdminAuthToken,
+                        'content-type' => 'application/json',
+                    ],
+                ]);
+
+                if ($response->getStatusCode() === 200 || $response->getStatusCode() === 201) {
+                    $mResult = json_decode($response->getBody()->getContents());
+                }
+            } catch (\Exception $oException) {
+                \Aurora\System\Api::Log('Create group Exception', \Aurora\System\Enums\LogLevel::Error);
+                \Aurora\System\Api::Log($oException->getMessage(), \Aurora\System\Enums\LogLevel::Error);
+                \Aurora\System\Api::LogException($oException, \Aurora\System\Enums\LogLevel::Error);
+            }
+        }
+
+        return $mResult;
+    }
+
+    public function deleteGroup($iGroupId)
+    {
+        $bResult = false;
+
+        $sAdminAuthToken = $this->getAdminToken();
+        if ($sAdminAuthToken) {
+            $sSeafileUrl = $this->oModule->oModuleSettings->Url;
+            $client = new \GuzzleHttp\Client();
+
+            try {
+                $response = $client->request('DELETE', $sSeafileUrl . '/api/v2.1/admin/groups/' . $iGroupId . '/', [
+                    'headers' => [
+                        'accept' => 'application/json',
+                        'authorization' => 'Bearer ' . $sAdminAuthToken,
+                    ],
+                ]);
+
+                if ($response->getStatusCode() === 200 || $response->getStatusCode() === 201) {
+                    $bResult = $response->getBody()->getContents();
+                }
+            } catch (\Exception $oException) {
+                \Aurora\System\Api::Log('Delete group Exception', \Aurora\System\Enums\LogLevel::Error);
+                \Aurora\System\Api::Log($oException->getMessage(), \Aurora\System\Enums\LogLevel::Error);
+                \Aurora\System\Api::LogException($oException, \Aurora\System\Enums\LogLevel::Error);
+            }
+        }
+
+        return $bResult;
+    }
+
+    public function getAccountEmailsByUserIds(array $aUserIds)
+    {
+        $aResult = [];
+
+        foreach ($aUserIds as $iUserId) {
+            $oUser = \Aurora\Api::getUserById($iUserId);
+            $sAccountEmail = $oUser->getExtendedProp($this->oModule->GetName() . '::Email');
+
+            if ($sAccountEmail) {
+                $aResult[] = $sAccountEmail;
+            }
+        }
+
+        return $aResult;
+    }
+
+    public function addMembersToGroup(int $iGroupId, array $aAccountEmails)
+    {
+        $bResult = false;
+
+        if (count($aAccountEmails) > 0) {
+            $sAdminAuthToken = $this->getAdminToken();
+            if ($sAdminAuthToken) {
+                $sSeafileUrl = $this->oModule->oModuleSettings->Url;
+                $client = new \GuzzleHttp\Client();
+    
+                $bError = false;
+    
+                foreach ($aAccountEmails as $sEmail) {
+    
+                    try {
+                        $response = $client->request('POST', $sSeafileUrl . '/api/v2.1/admin/groups/' . $iGroupId . '/members/', [
+                            // 'json' => [
+                            //     'email' => $sEmail,
+                            // ],
+                            'form_params' => [
+                                'email' => $sEmail
+                            ],
+                            'headers' => [
+                                'accept' => 'application/json',
+                                'authorization' => 'Bearer ' . $sAdminAuthToken,
+                                // 'content-type' => 'application/json',
+                            ],
+                        ]);
+        
+                        if ($response->getStatusCode() === 200 || $response->getStatusCode() === 201) {
+                            //failed[0].email failed[0].error_msg
+                            //success[0]
+                            $oResponseBody = json_decode($response->getBody()->getContents());
+                            if (count($oResponseBody->failed) > 0) {
+                                $bError = false;
+                            }
+                        }
+                    } catch (\Exception $oException) {
+                        \Aurora\System\Api::Log('Adding account to a group Exception', \Aurora\System\Enums\LogLevel::Error);
+                        \Aurora\System\Api::Log($oException->getMessage(), \Aurora\System\Enums\LogLevel::Error);
+                        \Aurora\System\Api::LogException($oException, \Aurora\System\Enums\LogLevel::Error);
+                    }
+                }
+
+                $bResult = !$bError;
+            }
+        }
+
+        return $bResult;
+    }
+
+    public function removeMembersToGroup(int $iGroupId, array $aAccountEmails)
+    {
+        $bResult = false;
+
+        if (count($aAccountEmails) > 0) {
+            $sAdminAuthToken = $this->getAdminToken();
+            if ($sAdminAuthToken) {
+                $sSeafileUrl = $this->oModule->oModuleSettings->Url;
+                $client = new \GuzzleHttp\Client();
+    
+                $bError = false;
+    
+                foreach ($aAccountEmails as $sEmail) {
+                    try {
+                        $response = $client->request('DELETE', $sSeafileUrl . '/api/v2.1/admin/groups/' . $iGroupId . '/members/' . $sEmail . '/' , [
+                            'headers' => [
+                                'accept' => 'application/json',
+                                'authorization' => 'Bearer ' . $sAdminAuthToken,
+                            ],
+                        ]);
+        
+                        if ($response->getStatusCode() === 200 || $response->getStatusCode() === 201) {
+                            //failed[0].email failed[0].error_msg
+                            //success[0]
+                            $oResponseBody = json_decode($response->getBody()->getContents());
+                            if (!$oResponseBody->success) {
+                                $bError = false;
+                            }
+                        }
+                    } catch (\Exception $oException) {
+                        \Aurora\System\Api::Log('Deleting account from a group Exception', \Aurora\System\Enums\LogLevel::Error);
+                        \Aurora\System\Api::Log($oException->getMessage(), \Aurora\System\Enums\LogLevel::Error);
+                        \Aurora\System\Api::LogException($oException, \Aurora\System\Enums\LogLevel::Error);
+                    }
+                }
+
+                $bResult = !$bError;
+            }
+        }
+
+        return $bResult;
     }
 }
