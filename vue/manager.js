@@ -1,8 +1,10 @@
 import settings from './settings'
 import store from 'src/store'
 
+import AdminSettingsPerTenant from './components/AdminSettingsPerTenant'
 import AdminSettingsPerUser from './components/AdminSettingsPerUser'
 
+const moduleHash = 'iframe-app-seafile'
 export default {
   moduleName: 'IframeAppSeafile',
 
@@ -15,7 +17,7 @@ export default {
   getAdminSystemTabs () {
     return [
       {
-        tabName: 'iframe-app-seafile',
+        tabName: moduleHash,
         tabTitle: 'IFRAMEAPPSEAFILE.LABEL_SETTINGS_TAB',
         tabRouteChildren: [
           { path: 'iframe-app-seafile', component: () => import('./components/AdminSettings') },
@@ -29,7 +31,7 @@ export default {
     if (isUserSuperAdmin) {
       return [
         {
-          tabName: 'iframe-app-seafile',
+          tabName: moduleHash,
           tabTitle: 'IFRAMEAPPSEAFILE.LABEL_SETTINGS_TAB',
           tabRouteChildren: [
             { path: 'id/:id/iframe-app-seafile', component: AdminSettingsPerUser },
@@ -41,5 +43,20 @@ export default {
       ]
     }
     return []
+  },
+
+  getAdminTenantTabs () {
+    return [
+      {
+        tabName: moduleHash,
+        tabTitle: 'IFRAMEAPPSEAFILE.HEADING_BROWSER_TAB',
+        tabRouteChildren: [
+          { path: 'id/:id/' + moduleHash, component: AdminSettingsPerTenant },
+          { path: 'search/:search/id/:id/' + moduleHash, component: AdminSettingsPerTenant },
+          { path: 'page/:page/id/:id/' + moduleHash, component: AdminSettingsPerTenant },
+          { path: 'search/:search/page/:page/id/:id/' + moduleHash, component: AdminSettingsPerTenant },
+        ],
+      },
+    ]
   },
 }

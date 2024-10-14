@@ -30,14 +30,12 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         $this->subscribeEvent('Core::DeleteUser::after', [$this, 'onAfterDeleteUser']);
         $this->subscribeEvent('Core::Logout::after', [$this, 'onAfterLogout']);
 
+        // $this->subscribeEvent('Core::GetGroups::after', array($this, 'onAfterGetGroups'));
         $this->subscribeEvent('Core::CreateGroup::after', array($this, 'onAfterCreateGroup'));
         $this->subscribeEvent('Core::DeleteGroup::before', array($this, 'onBeforeDeleteGroup'));
         $this->subscribeEvent('Core::AddUsersToGroup::after', array($this, 'onAfterAddUsersToGroup'));
         $this->subscribeEvent('Core::RemoveUsersFromGroup::after', array($this, 'onAfterRemoveUsersFromGroup'));
-
-        // GetGroupUsers
-        // AddUsersToGroup($GroupId, $UserIds)
-        // RemoveUsersFromGroup($GroupId, $UserIds)
+        $this->subscribeEvent('Core::UpdateUserGroups::after', array($this, 'onAfterUpdateUserGroups'));
     }
 
     /**
@@ -121,6 +119,36 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         }
     }
 
+    // public function onAfterGetGroups($aArgs, &$mResult)
+    // {
+    //     $aAroraGroups = $mResult['Items'] ?? [];
+        
+    //     $aSeafileGroups = $this->oManager->getGroups();
+
+
+    //     if ($aSeafileGroups) {
+    //         $aSeafileGroups = array_map(function($group) {
+    //             return $group->id;
+    //         }, $aSeafileGroups);
+
+    //         $aSeafileGroups = array_combine($aSeafileGroups, $aSeafileGroups);
+    //     }
+
+    //     foreach ($aAroraGroups as $oAuroraGroupData) {
+    //         $oAuroraGroup = \Aurora\Modules\Core\Module::Decorator()->GetGroup($oAuroraGroupData['Id']);
+    //         $iGroupId = $oAuroraGroup->getExtendedProp(self::GetName() . '::GroupId');
+
+    //         if (!in_array($iGroupId, $aSeafileGroups)) {
+    //             $oSeafileGroup = $this->oManager->createGroup($oAuroraGroup->Name);
+
+    //             if ($oSeafileGroup) {
+    //                 $oAuroraGroup->setExtendedProp(self::GetName() . '::GroupId', $oSeafileGroup->id);
+    //                 $oAuroraGroup->save();
+    //             }
+    //         }
+    //     }
+    // }
+
     public function onAfterCreateGroup($aArgs, &$mResult)
     {
         $iGroupId = isset($mResult) && (int) $mResult > 0 ? $mResult : 0;
@@ -137,7 +165,6 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
                     $oAuroraGroup->save();
                 }
             }
-
         }
     }
 
@@ -150,6 +177,51 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
             if  ($iGroupId) {
                 $this->oManager->deleteGroup($iGroupId);
+            }
+        }
+    }
+
+    public function onAfterUpdateUserGroups($aArgs, &$mResult)
+    {
+        if ($mResult) {
+            $aAuroraGroupIds = $aArgs['GroupIds'] ?? [];
+            $iUserId = $aArgs['UserId'] ?? null;
+    
+            if ($iUserId > 0 && is_array($aAuroraGroupIds) && count($aAuroraGroupIds) > 0) {
+                
+                $sSeafileAccountEmail = $this->oManager->getAccountEmailByUserId($iUserId); 
+
+                $aSeafileAccountGroups = $this->oManager->getAccountGroups($sSeafileAccountEmail);
+                if ($aSeafileAccountGroups) {
+                    $aSeafileAccountGroups = array_map(function($group) {
+                        return $group->id;
+                    }, $aSeafileAccountGroups);
+
+                    $aSeafileAccountGroups = array_combine($aSeafileAccountGroups, $aSeafileAccountGroups);
+                }
+
+                foreach ($aAuroraGroupIds as $iAuroraGroupId) {
+                    $oAuroraGroup = \Aurora\Modules\Core\Module::Decorator()->GetGroup($iAuroraGroupId);
+
+                    if ($oAuroraGroup && $oAuroraGroup->getExtendedProp(self::GetName() . '::GroupId')) {
+                        $iGroupId = $oAuroraGroup->getExtendedProp(self::GetName() . '::GroupId');
+
+                        if (!in_array($iGroupId, $aSeafileAccountGroups)) {
+                            unset($aSeafileAccountGroups[$iGroupId]);
+                            if (!$this->oManager->addMemberToGroup($iGroupId, $sSeafileAccountEmail)) {
+                                $mResult = false;
+                            }
+                        } else if (in_array($iGroupId, $aSeafileAccountGroups)) {
+                            unset($aSeafileAccountGroups[$iGroupId]);
+                        }
+                    }
+                }
+
+                foreach($aSeafileAccountGroups as $iGroupId) {
+                    if (!$this->oManager->removeMemberFromGroup($iGroupId, $sSeafileAccountEmail)) {
+                        $mResult = false;
+                    }
+                }
             }
         }
     }
@@ -190,7 +262,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
                     $aSeafileAccountEmails = $this->oManager->getAccountEmailsByUserIds($aUserIds); 
                     
-                    $mResult = $this->oManager->removeMembersToGroup($iGroupId, $aSeafileAccountEmails);
+                    $mResult = $this->oManager->removeMembersFromGroup($iGroupId, $aSeafileAccountEmails);
                 }
             }
         }
@@ -664,5 +736,97 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         }
 
         return $result;
+    }
+
+    /**
+     * Creates or remove Seafile groups and assings group members
+     * 
+     * @param int $TenantId
+     * @param bool $ForceRemove
+     * 
+     * @return array
+     */
+    public function SyncGroups($TenantId = null, $ForceRemove = false)
+    {
+        $mResult = [
+            'Failed' => 0,
+            'Created' => 0,
+            'Skipped' => 0,
+            'Removed'  => 0,
+            'GroupsToIds'  => [],
+        ];
+        \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
+
+        if ($TenantId === null) {
+            throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter, null, 'InvalidInputParameter');
+        }
+
+        $aAroraGroups = \Aurora\Modules\Core\Module::Decorator()->GetGroups($TenantId);
+        $aAroraGroups = $aAroraGroups['Items'] ?? [];
+        $mResult['Failed'] = count($aAroraGroups);
+        $aSeafileGroups = $this->oManager->getGroups();
+
+        if ($aSeafileGroups) {
+            $aSeafileGroups = array_map(function($item) { return $item->id; }, $aSeafileGroups);
+            $aSeafileGroups = array_combine($aSeafileGroups, $aSeafileGroups);
+        }
+
+        foreach ($aAroraGroups as $oAuroraGroupData) {
+            $oAuroraGroup = \Aurora\Modules\Core\Module::Decorator()->GetGroup($oAuroraGroupData['Id']);
+            $iGroupId = $oAuroraGroup->getExtendedProp(self::GetName() . '::GroupId');
+
+            if (in_array($iGroupId, $aSeafileGroups)) {
+                unset($aSeafileGroups[$iGroupId]);
+                $mResult['Skipped']++;
+                $mResult['Failed']--;
+
+                $this->setGroupMembers($oAuroraGroup, $iGroupId);
+            } else {
+                $oSeafileGroup = $this->oManager->createGroup($oAuroraGroup->Name);
+                
+                if ($oSeafileGroup) {
+                    $oAuroraGroup->setExtendedProp(self::GetName() . '::GroupId', $oSeafileGroup->id);
+                    if ($oAuroraGroup->save()) {
+                        $mResult['Created']++;
+                        $mResult['Failed']--;
+                    }
+
+                    $this->setGroupMembers($oAuroraGroup, $oSeafileGroup->id);
+                }
+            }
+
+            if ($ForceRemove) {
+                foreach($aSeafileGroups as $iGroupId) {
+                    if ($this->oManager->deleteGroup($iGroupId)) {
+                        unset($aSeafileGroups[$iGroupId]);
+                        $mResult['Removed']++;
+                    }
+                }
+            }   
+
+            $mResult['GroupsToIds'] = array_values($aSeafileGroups);
+        }
+
+        return $mResult;
+    }
+
+    protected function setGroupMembers($oAuroraGroup, $iSeafileGroupId)
+    {
+        $bResult = false;
+
+        if ($oAuroraGroup->IsAll) {
+            $aUserIds = \Aurora\Modules\Core\Module::Decorator()->GetUsers($oAuroraGroup->TenantId);
+            $aUserIds = array_map(function($item) { return $item['Id']; }, $aUserIds['Items']);
+        } else {
+            $aUserIds = $oAuroraGroup->Users()->get()->map(function ($item) { 
+                return $item->Id;
+            })->toArray();
+        }
+        if (count($aUserIds) > 0) {
+            $aSeafileAccountEmails = $this->oManager->getAccountEmailsByUserIds($aUserIds); 
+            $bResult = $this->oManager->addMembersToGroup($iSeafileGroupId, $aSeafileAccountEmails);
+        }
+
+        return $bResult;
     }
 }
