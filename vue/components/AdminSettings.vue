@@ -34,7 +34,7 @@
             <div class="col-2"></div>
             <div class="col-5">
               <q-checkbox dense v-model="allowUserEditSettings">
-                <q-item-label v-t="'IFRAMEAPPSEAFILE.LABEL_ALLOW_USER_EDIT_SETTIMGS'" />
+                <q-item-label v-t="'IFRAMEAPPSEAFILE.LABEL_ALLOW_USER_EDIT_SETTINGS'" />
               </q-checkbox>
             </div>
           </div>
