@@ -31,11 +31,11 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         $this->subscribeEvent('Core::Logout::after', [$this, 'onAfterLogout']);
 
         // $this->subscribeEvent('Core::GetGroups::after', array($this, 'onAfterGetGroups'));
-        $this->subscribeEvent('Core::CreateGroup::after', array($this, 'onAfterCreateGroup'));
-        $this->subscribeEvent('Core::DeleteGroup::before', array($this, 'onBeforeDeleteGroup'));
-        $this->subscribeEvent('Core::AddUsersToGroup::after', array($this, 'onAfterAddUsersToGroup'));
-        $this->subscribeEvent('Core::RemoveUsersFromGroup::after', array($this, 'onAfterRemoveUsersFromGroup'));
-        $this->subscribeEvent('Core::UpdateUserGroups::after', array($this, 'onAfterUpdateUserGroups'));
+        $this->subscribeEvent('Core::CreateGroup::after', [$this, 'onAfterCreateGroup']);
+        $this->subscribeEvent('Core::DeleteGroup::before', [$this, 'onBeforeDeleteGroup']);
+        $this->subscribeEvent('Core::AddUsersToGroup::after', [$this, 'onAfterAddUsersToGroup']);
+        $this->subscribeEvent('Core::RemoveUsersFromGroup::after', [$this, 'onAfterRemoveUsersFromGroup']);
+        $this->subscribeEvent('Core::UpdateUserGroups::after', [$this, 'onAfterUpdateUserGroups']);
     }
 
     /**
@@ -122,7 +122,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
     // public function onAfterGetGroups($aArgs, &$mResult)
     // {
     //     $aAroraGroups = $mResult['Items'] ?? [];
-        
+
     //     $aSeafileGroups = $this->oManager->getGroups();
 
 
@@ -154,9 +154,9 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         $iGroupId = isset($mResult) && (int) $mResult > 0 ? $mResult : 0;
 
         if ((int) $iGroupId > 0) {
-            
+
             $oAuroraGroup = \Aurora\Modules\Core\Module::Decorator()->GetGroup($iGroupId);
-            
+
             if ($oAuroraGroup) {
                 $oSeafileGroup = $this->oManager->createGroup($oAuroraGroup->Name);
 
@@ -171,11 +171,11 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
     public function onBeforeDeleteGroup($aArgs, &$mResult)
     {
         $oAuroraGroup = \Aurora\Modules\Core\Module::Decorator()->GetGroup($aArgs['GroupId']);
-            
+
         if ($oAuroraGroup) {
             $iGroupId = $oAuroraGroup->getExtendedProp(self::GetName() . '::GroupId');
 
-            if  ($iGroupId) {
+            if ($iGroupId) {
                 $this->oManager->deleteGroup($iGroupId);
             }
         }
@@ -186,14 +186,14 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         if ($mResult) {
             $aAuroraGroupIds = $aArgs['GroupIds'] ?? [];
             $iUserId = $aArgs['UserId'] ?? null;
-    
+
             if ($iUserId > 0 && is_array($aAuroraGroupIds) && count($aAuroraGroupIds) > 0) {
-                
-                $sSeafileAccountEmail = $this->oManager->getAccountEmailByUserId($iUserId); 
+
+                $sSeafileAccountEmail = $this->oManager->getAccountEmailByUserId($iUserId);
 
                 $aSeafileAccountGroups = $this->oManager->getAccountGroups($sSeafileAccountEmail);
                 if ($aSeafileAccountGroups) {
-                    $aSeafileAccountGroups = array_map(function($group) {
+                    $aSeafileAccountGroups = array_map(function ($group) {
                         return $group->id;
                     }, $aSeafileAccountGroups);
 
@@ -211,13 +211,13 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
                             if (!$this->oManager->addMemberToGroup($iGroupId, $sSeafileAccountEmail)) {
                                 $mResult = false;
                             }
-                        } else if (in_array($iGroupId, $aSeafileAccountGroups)) {
+                        } elseif (in_array($iGroupId, $aSeafileAccountGroups)) {
                             unset($aSeafileAccountGroups[$iGroupId]);
                         }
                     }
                 }
 
-                foreach($aSeafileAccountGroups as $iGroupId) {
+                foreach ($aSeafileAccountGroups as $iGroupId) {
                     if (!$this->oManager->removeMemberFromGroup($iGroupId, $sSeafileAccountEmail)) {
                         $mResult = false;
                     }
@@ -231,16 +231,16 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         if ($mResult) {
             $iAuroraGroupId = (int) $aArgs['GroupId'] ?? 0;
             $aUserIds = $aArgs['UserIds'] ?? [];
-    
+
             if ($iAuroraGroupId > 0 && is_array($aUserIds) && count($aUserIds) > 0) {
-                
+
                 $oAuroraGroup = \Aurora\Modules\Core\Module::Decorator()->GetGroup($iAuroraGroupId);
-                
+
                 if ($oAuroraGroup && $oAuroraGroup->getExtendedProp(self::GetName() . '::GroupId')) {
                     $iGroupId = $oAuroraGroup->getExtendedProp(self::GetName() . '::GroupId');
 
-                    $aSeafileAccountEmails = $this->oManager->getAccountEmailsByUserIds($aUserIds); 
-                    
+                    $aSeafileAccountEmails = $this->oManager->getAccountEmailsByUserIds($aUserIds);
+
                     $mResult = $this->oManager->addMembersToGroup($iGroupId, $aSeafileAccountEmails);
                 }
             }
@@ -252,16 +252,16 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         if ($mResult) {
             $iAuroraGroupId = (int) $aArgs['GroupId'] ?? 0;
             $aUserIds = $aArgs['UserIds'] ?? [];
-    
+
             if ($iAuroraGroupId > 0 && is_array($aUserIds) && count($aUserIds) > 0) {
-                
+
                 $oAuroraGroup = \Aurora\Modules\Core\Module::Decorator()->GetGroup($iAuroraGroupId);
-                
+
                 if ($oAuroraGroup && $oAuroraGroup->getExtendedProp(self::GetName() . '::GroupId')) {
                     $iGroupId = $oAuroraGroup->getExtendedProp(self::GetName() . '::GroupId');
 
-                    $aSeafileAccountEmails = $this->oManager->getAccountEmailsByUserIds($aUserIds); 
-                    
+                    $aSeafileAccountEmails = $this->oManager->getAccountEmailsByUserIds($aUserIds);
+
                     $mResult = $this->oManager->removeMembersFromGroup($iGroupId, $aSeafileAccountEmails);
                 }
             }
@@ -553,7 +553,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
                     'domain' => '',
                     'secure' => \Aurora\System\Api::getCookieSecure(),
                     'httponly' => true,
-                ]
+                ],
             );
         }
 
@@ -740,10 +740,10 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
     /**
      * Creates or remove Seafile groups and assings group members
-     * 
+     *
      * @param int $TenantId
      * @param bool $ForceRemove
-     * 
+     *
      * @return array
      */
     public function SyncGroups($TenantId = null, $ForceRemove = false)
@@ -767,7 +767,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         $aSeafileGroups = $this->oManager->getGroups();
 
         if ($aSeafileGroups) {
-            $aSeafileGroups = array_map(function($item) { return $item->id; }, $aSeafileGroups);
+            $aSeafileGroups = array_map(function ($item) { return $item->id; }, $aSeafileGroups);
             $aSeafileGroups = array_combine($aSeafileGroups, $aSeafileGroups);
         }
 
@@ -783,7 +783,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
                 $this->setGroupMembers($oAuroraGroup, $iGroupId);
             } else {
                 $oSeafileGroup = $this->oManager->createGroup($oAuroraGroup->Name);
-                
+
                 if ($oSeafileGroup) {
                     $oAuroraGroup->setExtendedProp(self::GetName() . '::GroupId', $oSeafileGroup->id);
                     if ($oAuroraGroup->save()) {
@@ -796,13 +796,13 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
             }
 
             if ($ForceRemove) {
-                foreach($aSeafileGroups as $iGroupId) {
+                foreach ($aSeafileGroups as $iGroupId) {
                     if ($this->oManager->deleteGroup($iGroupId)) {
                         unset($aSeafileGroups[$iGroupId]);
                         $mResult['Removed']++;
                     }
                 }
-            }   
+            }
 
             $mResult['GroupsToIds'] = array_values($aSeafileGroups);
         }
@@ -816,14 +816,14 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
         if ($oAuroraGroup->IsAll) {
             $aUserIds = \Aurora\Modules\Core\Module::Decorator()->GetUsers($oAuroraGroup->TenantId);
-            $aUserIds = array_map(function($item) { return $item['Id']; }, $aUserIds['Items']);
+            $aUserIds = array_map(function ($item) { return $item['Id']; }, $aUserIds['Items']);
         } else {
-            $aUserIds = $oAuroraGroup->Users()->get()->map(function ($item) { 
+            $aUserIds = $oAuroraGroup->Users()->get()->map(function ($item) {
                 return $item->Id;
             })->toArray();
         }
         if (count($aUserIds) > 0) {
-            $aSeafileAccountEmails = $this->oManager->getAccountEmailsByUserIds($aUserIds); 
+            $aSeafileAccountEmails = $this->oManager->getAccountEmailsByUserIds($aUserIds);
             $bResult = $this->oManager->addMembersToGroup($iSeafileGroupId, $aSeafileAccountEmails);
         }
 

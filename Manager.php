@@ -348,7 +348,7 @@ class Manager extends \Aurora\System\Managers\AbstractManager
                         // TODO: add page loop $oResponseBody->page_info->has_next_page
                         $mResult = $oResponseBody->groups;
                     }
-                    
+
                 }
             } catch (\Exception $oException) {
                 \Aurora\System\Api::Log('Create group Exception', \Aurora\System\Enums\LogLevel::Error);
@@ -507,19 +507,19 @@ class Manager extends \Aurora\System\Managers\AbstractManager
             if ($sAdminAuthToken) {
                 $sSeafileUrl = $this->oModule->oModuleSettings->Url;
                 $client = new \GuzzleHttp\Client();
-    
+
                 try {
                     $response = $client->request('POST', $sSeafileUrl . '/api/v2.1/admin/groups/' . $iGroupId . '/members/', [
                         // json doesn't work here
                         'form_params' => [
-                            'email' => $sAccountEmail
+                            'email' => $sAccountEmail,
                         ],
                         'headers' => [
                             'accept' => 'application/json',
                             'authorization' => 'Bearer ' . $sAdminAuthToken,
                         ],
                     ]);
-    
+
                     if ($response->getStatusCode() === 200 || $response->getStatusCode() === 201) {
                         $oResponseBody = json_decode($response->getBody()->getContents());
                         $bResult = count($oResponseBody->failed) === 0;
@@ -559,15 +559,15 @@ class Manager extends \Aurora\System\Managers\AbstractManager
             if ($sAdminAuthToken) {
                 $sSeafileUrl = $this->oModule->oModuleSettings->Url;
                 $client = new \GuzzleHttp\Client();
-        
+
                 try {
-                    $response = $client->request('DELETE', $sSeafileUrl . '/api/v2.1/admin/groups/' . $iGroupId . '/members/' . $sAccountEmail . '/' , [
+                    $response = $client->request('DELETE', $sSeafileUrl . '/api/v2.1/admin/groups/' . $iGroupId . '/members/' . $sAccountEmail . '/', [
                         'headers' => [
                             'accept' => 'application/json',
                             'authorization' => 'Bearer ' . $sAdminAuthToken,
                         ],
                     ]);
-    
+
                     if ($response->getStatusCode() === 200 || $response->getStatusCode() === 201) {
                         $oResponseBody = json_decode($response->getBody()->getContents());
                         $bResult = $oResponseBody->success ?? false;
