@@ -36,6 +36,8 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         $this->subscribeEvent('Core::AddUsersToGroup::after', [$this, 'onAfterAddUsersToGroup']);
         $this->subscribeEvent('Core::RemoveUsersFromGroup::after', [$this, 'onAfterRemoveUsersFromGroup']);
         $this->subscribeEvent('Core::UpdateUserGroups::after', [$this, 'onAfterUpdateUserGroups']);
+
+        $this->subscribeEvent('Core::Login::after', [$this, 'onAfterLogin']);
     }
 
     /**
@@ -103,7 +105,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
             $oUser = Api::getUserById($aArgs['UserId']);
 
             if ($oUser) {
-                $sEmail = $oUser->getExtendedProp(self::GetName() . '::Email');
+                $sEmail = $oUser->PublicId; //$oUser->getExtendedProp(self::GetName() . '::Email');
 
                 if ($sEmail) {
                     $bResult = $this->oManager->deleteAccount($sEmail);
@@ -828,5 +830,17 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         }
 
         return $bResult;
+    }
+
+    public function Search($Query, $LibraryType = 'all')
+    {
+        $result = [];
+        \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+        $oUser = \Aurora\System\Api::getAuthenticatedUser();
+        if ($oUser) {
+            $result = $this->oManager->searchInLibraries($oUser, $Query, $LibraryType);
+        }
+
+        return $result;
     }
 }

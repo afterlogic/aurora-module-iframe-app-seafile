@@ -582,4 +582,112 @@ class Manager extends \Aurora\System\Managers\AbstractManager
 
         return $bResult;
     }
+
+    public function getLibraries($oUser, $type = 'all')
+    {
+        $result = [];
+        $userToken = $this->getUserToken($oUser);
+        if ($userToken) {
+            $sSeafileUrl = $this->oModule->oModuleSettings->Url;
+            $client = new \GuzzleHttp\Client();
+
+            $url = "$sSeafileUrl/api2/repos/";
+            if ($type !== 'all') {
+                $url .= "?type=$type";
+            }
+            $response = $client->request('GET', "$sSeafileUrl/api2/repos/", [
+                'headers' => [
+                  'accept' => 'application/json',
+                  'authorization' => "Bearer $userToken",
+                ],
+            ]);
+
+            if ($response->getStatusCode() === 200) {
+                $result = json_decode($response->getBody()->getContents());
+            }
+        }
+
+        return $result;
+    }
+
+    public function searchInLibrariy($oUser, $repoId, $query)
+    {
+        $result = [];
+        $userToken = $this->getUserToken($oUser);
+        if ($userToken) {
+            $sSeafileUrl = $this->oModule->oModuleSettings->Url;
+            $client = new \GuzzleHttp\Client();
+
+            $response = $client->request('GET', "$sSeafileUrl/api/v2.1/search-file/?repo_id=$repoId&q=$query", [
+                'headers' => [
+                    'accept' => 'application/json',
+                    'authorization' => "Bearer $userToken",
+                ],
+            ]);
+            if ($response->getStatusCode() === 200) {
+                $resultBody = json_decode($response->getBody()->getContents());
+                $result = array_map(function ($item) use ($repoId) {
+                    $item->repoId = $repoId;
+                    return $item;
+                }, $resultBody->data);
+            }
+        }
+
+        return $result;
+    }
+
+    public function searchInLibraries($oUser, $query, $type = 'all')
+    {
+        $result = ['storages' => [
+            'repo' => [],
+            'srepo' => [],
+            'grepo' => []
+        ]];
+        $sSeafileUrl = $this->oModule->oModuleSettings->Url;
+
+        $libraries = $this->getLibraries($oUser, $type);
+        $count = 0;
+        if (is_array($libraries)) {
+            foreach ($libraries as $library) {
+                $searchResult = $this->searchInLibrariy($oUser, $library->id, $query);
+                $searchResult = array_map(function ($item) use ($library, $sSeafileUrl) {
+                    $item->repoName = $library->name;
+                    if ($item->type === 'file') {
+                        $item->url = $sSeafileUrl . '/lib/' . $item->repoId . '/file' . $item->path;
+                    } else {
+                        $item->url = $sSeafileUrl . '/library/' . $item->repoId . '/' . $item->repoName . $item->path;
+                    }
+                    return $item;
+                }, $searchResult);
+
+                $count += count($searchResult);
+
+                if ($library->type === 'repo') {
+                    $result['storages'][$library->type] = array_merge(
+                        $result['storages'][$library->type], 
+                        $searchResult
+                    );
+                } else { 
+                    if ($library->type === 'srepo') {
+                        $owner = $library->owner_contact_email;
+                    } elseif ($library->type === 'grepo') {
+                        $owner = $library->share_from_contact_email;
+                    }
+                    if (count($searchResult) > 0) {
+                        if (!isset($result['storages'][$library->type][$owner])) {
+                            $result['storages'][$library->type][$owner] = [];
+                        }
+                        $result['storages'][$library->type][$owner] = array_merge(
+                            $result['storages'][$library->type][$owner], 
+                            $searchResult
+                        );
+                    }
+                }
+            }
+        }
+
+        $result['count'] = $count;
+
+        return $result;
+    }
 }

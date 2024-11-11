@@ -30,6 +30,7 @@ function CMainView()
 	this.browserTitle = ko.observable(TextUtils.i18n('%MODULENAME%/HEADING_BROWSER_TAB'));
 	this.sFrameUrl =  ko.observable();
 	this.iframeDom = ko.observable(null);
+	this.isIframeLoaded = ko.observable(false);
 
 	App.broadcastEvent('%ModuleName%::ConstructView::after', {'Name': this.ViewConstructorName, 'View': this});
 }
@@ -67,6 +68,25 @@ CMainView.prototype.onShow = function ()
 		this.onGetLoginLinkResponse,
 		this
 	);
+};
+
+CMainView.prototype.checkIframeLoaded = function () {
+    var 
+		iframe = document.getElementById('seafileIframe'),
+		self = this;
+
+	iframe.addEventListener("load", function() {
+		self.isIframeLoaded(true);
+	});
+}
+
+CMainView.prototype.search = function ()
+{
+	const
+		Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
+		SearchFilesPopup = require('modules/%ModuleName%/js/popups/SearchFilesPopup.js')
+	;
+	Popups.showPopup(SearchFilesPopup, []);
 };
 
 module.exports = new CMainView();
