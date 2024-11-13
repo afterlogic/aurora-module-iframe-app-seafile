@@ -16,22 +16,18 @@ module.exports = function (oAppData) {
 	const sAppHash = Settings.TabName ? TextUtils.getUrlFriendlyName(Settings.TabName) : Settings.HashModuleName
 	
 	if (App.isUserNormalOrTenant() && Settings.Url && Settings.Login) {
-		const onGetUserTokenResponse = function (oResponse, oRequest) {
-			if (!oResponse.Result) {
-				Api.showErrorByCode(oResponse, TextUtils.i18n('COREWEBCLIENT/ERROR_UNKNOWN'))
-			}
-		}
-
 		// this request sets a seafile_token cookie
-		if (App.isUserNormalOrTenant()) {
-			Ajax.send(
-				Settings.ServerModuleName,
-				'GetUserToken',
-				null,
-				onGetUserTokenResponse,
-				this
-			)
-		}
+		Ajax.send(
+			Settings.ServerModuleName,
+			'GetUserToken',
+			null,
+			(oResponse, oRequest) => {
+				if (!oResponse.Result) {
+					Api.showErrorByCode(oResponse, TextUtils.i18n('COREWEBCLIENT/ERROR_UNKNOWN'))
+				}
+			},
+			this
+		)
 
 		return {
 			/**
@@ -80,7 +76,7 @@ module.exports = function (oAppData) {
 			getScreens: function () {
 				const oScreens = {}
 				
-				if (Settings.Login !== '' && Settings.HasPassword) {
+				if (Settings.Email !== '' && Settings.HasPassword) {
 					oScreens[sAppHash] = function () {
 						return require('modules/%ModuleName%/js/views/MainView.js');
 					}
@@ -100,7 +96,7 @@ module.exports = function (oAppData) {
 					oHeaderEntry = {}
 				;
 
-				if (Settings.Login !== '' && Settings.HasPassword) {
+				if (Settings.Email !== '' && Settings.HasPassword) {
 					if (HeaderItemView === null) {
 						HeaderItemView = new CHeaderItemView(Settings.TabName || TextUtils.i18n('%MODULENAME%/LABEL_SETTINGS_TAB'))
 					}
