@@ -14,87 +14,126 @@ const
  */
 function CSearchFilesPopup()
 {
-	CAbstractPopup.call(this);
+	CAbstractPopup.call(this)
 
-	this.isSearchInProgress = ko.observable(false);
-	this.searchInput = ko.observable('');
+	this.isSearchInProgress = ko.observable(false)
+	this.searchInput = ko.observable('')
 
+	this.searchResultCount = ko.observable(0)
 	this.searchItems = ko.observable({
-		storages: {},
-		count: 0
-	});
+		'Storages': {},
+		'Count': 0,
+	})
+
+	this.fCallback = null
+
+	this.storageLabels = {
+		'repo': TextUtils.i18n('%MODULENAME%/LABEL_MY_LIBRARIES'),
+		'srepo': TextUtils.i18n('%MODULENAME%/LABEL_SHARED_WITH_ME_BY'),
+		'grepo': TextUtils.i18n('%MODULENAME%/LABEL_SHARED_WITH_GROUPS_BY'),
+	}
+	
+	this.searchResultRepoItems = ko.observable([])
+	this.searchResultSRepoItems = ko.observable({})
+	this.searchResultGRepoItems = ko.observable({})
 
 	this.searchSubmitCommand = Utils.createCommand(this, function () {
-		this.search(this.searchInput());
-	});
+		this.search(this.searchInput())
+	})
 
-	this.storages = [
-		{
-			type: 'repo',
-			name: TextUtils.i18n('%MODULENAME%/LABEL_MY_LIBRARIES')
-		},
-		{
-			type: 'srepo',
-			name: TextUtils.i18n('%MODULENAME%/LABEL_SHARED_WITH_ME_BY')
-		},
-		{
-			type: 'grepo',
-			name: TextUtils.i18n('%MODULENAME%/LABEL_SHARED_WITH_GROUPS_BY')
-		}
-	];
+	this.bindOpenLink = _.bind(this.openLink, this)
 }
 
-_.extendOwn(CSearchFilesPopup.prototype, CAbstractPopup.prototype);
+_.extendOwn(CSearchFilesPopup.prototype, CAbstractPopup.prototype)
 
-CSearchFilesPopup.prototype.PopupTemplate = '%ModuleName%_SearchFilesPopup';
+CSearchFilesPopup.prototype.PopupTemplate = '%ModuleName%_SearchFilesPopup'
 
 CSearchFilesPopup.prototype.onBind = function ()
 {
-};
+}
 
-CSearchFilesPopup.prototype.onOpen = function ()
+CSearchFilesPopup.prototype.onOpen = function (fCallback)
 {
-	this.searchInput('');
+	console.log(arguments)
+	// this.searchInput('')
+	// this.resetSearchResults()
+	if (_.isFunction(fCallback))
+	{
+		this.fCallback = fCallback;
+	}
+}
+
+CSearchFilesPopup.prototype.openLink = function (item)
+{
+	console.log('openLink', this, item)
+	this.fCallback(item.url)
+	this.closePopup()
+}
+
+CSearchFilesPopup.prototype.resetSearchResults = function ()
+{
 	this.searchItems({
-		storages: {},
-		count: 0
-	});
-};
+		'Storages': {},
+		'Count': 0,
+	})
+	this.searchResultCount(0)
+	this.searchResultRepoItems([])
+	this.searchResultSRepoItems({})
+	this.searchResultGRepoItems({})
+}
 
 CSearchFilesPopup.prototype.search = function (query)
 {
-	this.isSearchInProgress(true);
-	this.searchItems([]);
-	Ajax.send('%ModuleName%',
+	this.isSearchInProgress(true)
+	this.resetSearchResults()
+	Ajax.send(
+		'%ModuleName%',
 		'Search',
 		{
 			'Query': query
 		},
 		this.onSearchResponse,
 		this
-	);
-};
+	)
+}
 
 CSearchFilesPopup.prototype.onSearchResponse = function (oResponse, oRequest)
 {
-	this.isSearchInProgress(false);
+	this.isSearchInProgress(false)
 	if (oResponse.Result)
 	{
-		for (var storage in oResponse.Result.storages) {
-			if (storage !== 'repo') {
-				var users = oResponse.Result.storages[storage];
-				oResponse.Result.storages[storage] = [];
-				for (var user in users) {
-					oResponse.Result.storages[storage].push({
-						user: user,
-						items: users[user]
+		this.searchResultCount(oResponse.Result.Count)
+
+		const storages = oResponse.Result.Storages
+		oResponse.Result.Storages = []
+		for (const storageName in storages) {
+			if (storageName === 'repo') {
+				oResponse.Result.Storages.push({
+					'name': storageName,
+					'label': this.storageLabels[storageName] ?? '',
+					'items':  storages[storageName]
+				});
+			} else {
+				const users = storages[storageName]
+				const userList = []
+				for (const userName in users) {
+					userList.push({
+						email: userName,
+						items: users[userName]
 					});
 				}
+
+				oResponse.Result.Storages.push({
+					'name': storageName,
+					'label': this.storageLabels[storageName] ?? '',
+					'items': userList
+				});
+				
 			}
 		}
 
-		this.searchItems(oResponse.Result);
+		this.searchItems(oResponse.Result)
 	}
-};
+}
 
-module.exports = new CSearchFilesPopup();
+module.exports = new CSearchFilesPopup()

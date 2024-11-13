@@ -80,13 +80,18 @@ CMainView.prototype.checkIframeLoaded = function () {
 	});
 }
 
-CMainView.prototype.search = function ()
+CMainView.prototype.openSearchDialog = function ()
 {
 	const
 		Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
 		SearchFilesPopup = require('modules/%ModuleName%/js/popups/SearchFilesPopup.js')
 	;
-	Popups.showPopup(SearchFilesPopup, []);
+	Popups.showPopup(SearchFilesPopup, [_.bind(this.searchLinkCallback, this)]);
+};
+
+CMainView.prototype.searchLinkCallback = function (link)
+{
+	this.sFrameUrl(link);
 };
 
 module.exports = new CMainView();

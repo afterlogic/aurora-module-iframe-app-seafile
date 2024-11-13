@@ -5,6 +5,23 @@
 	height: 16px !important;
 }
 
+.screen.IframeAppSeafile {
+	.btn {
+		position: absolute;
+		right: 100px;
+		margin-top: 8px;
+		background-color: #fff;
+		border: 1px solid #ccc;
+		border-radius: 2px;
+		font-size: .8125rem;
+		font-weight: 400;
+		height: 30px;
+		line-height: 29px;
+		min-width: 55px;
+		padding: 0 .5rem;
+	}
+}
+
 .popup.seafiles {
 	.panel.files .items_list .items_sub_list.item_list_table_view .item {
 		&.file .icon,
@@ -106,6 +123,41 @@
 			}
 			&.url {
 				background-position: -720px -360px;
+			}
+		}
+	}
+
+	.panel {
+		margin: 0;
+		
+		.panel_top {
+			padding: 0 0 16px;
+		}
+
+		.search_block {
+			padding: 0;
+		}
+
+		.panel_bottom {
+			padding: 0 !important;
+		}
+		.sub-header {
+			padding: 10px 0 0;
+			font-size: 16px;
+		}
+
+		.item {
+			border-bottom: 1px solid #e8e8e8;
+			padding: 10px 0;
+			display: flex;
+			align-items: center;
+			gap: 10px;
+
+			.icon {
+				width: 24px;
+				height: 24px;
+				border-radius: 4px;
+				background-color: #ccc;
 			}
 		}
 	}

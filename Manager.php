@@ -638,7 +638,7 @@ class Manager extends \Aurora\System\Managers\AbstractManager
 
     public function searchInLibraries($oUser, $query, $type = 'all')
     {
-        $result = ['storages' => [
+        $result = ['Storages' => [
             'repo' => [],
             'srepo' => [],
             'grepo' => []
@@ -663,8 +663,8 @@ class Manager extends \Aurora\System\Managers\AbstractManager
                 $count += count($searchResult);
 
                 if ($library->type === 'repo') {
-                    $result['storages'][$library->type] = array_merge(
-                        $result['storages'][$library->type], 
+                    $result['Storages'][$library->type] = array_merge(
+                        $result['Storages'][$library->type], 
                         $searchResult
                     );
                 } else { 
@@ -674,11 +674,11 @@ class Manager extends \Aurora\System\Managers\AbstractManager
                         $owner = $library->share_from_contact_email;
                     }
                     if (count($searchResult) > 0) {
-                        if (!isset($result['storages'][$library->type][$owner])) {
-                            $result['storages'][$library->type][$owner] = [];
+                        if (!isset($result['Storages'][$library->type][$owner])) {
+                            $result['Storages'][$library->type][$owner] = [];
                         }
-                        $result['storages'][$library->type][$owner] = array_merge(
-                            $result['storages'][$library->type][$owner], 
+                        $result['Storages'][$library->type][$owner] = array_merge(
+                            $result['Storages'][$library->type][$owner], 
                             $searchResult
                         );
                     }
@@ -686,7 +686,7 @@ class Manager extends \Aurora\System\Managers\AbstractManager
             }
         }
 
-        $result['count'] = $count;
+        $result['Count'] = $count;
 
         return $result;
     }

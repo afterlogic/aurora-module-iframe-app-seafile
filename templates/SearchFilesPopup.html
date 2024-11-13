@@ -1,21 +1,23 @@
 <div class="popup files seafiles" style="display: none;">
 	<div class="mask" data-bind="click: cancelPopup"></div>
+
 	<div class="popup_panel" style="width: 50%; padding-bottom: 20px;">
 		<span class="close" data-bind="click: cancelPopup"></span>
-			<div class="panel">
-				<div class="panel_content">
-					<div class="panel_top">
-						<span class="search_block"> 
-							<span class="input" data-bind="css: {'focus': true}">
-								<span class="icon search" data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_SEARCH'}, click: searchSubmitCommand"></span>
-								<input class="field" type="text" data-bind="valueUpdate: 'afterkeydown', value: searchInput, onEnter: searchSubmitCommand">
-							</span>
+		<div class="panel">
+			<div class="panel_content">
+				<div class="panel_top">
+					<span class="search_block"> 
+						<span class="input" data-bind="css: {'focus': true}">
+							<span class="icon search" data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_SEARCH'}, click: searchSubmitCommand"></span>
+							<input class="field" type="text" data-bind="valueUpdate: 'afterkeydown', value: searchInput, onEnter: searchSubmitCommand">
 						</span>
-					</div>
+					</span>
+				</div>
 
-					<div class="panel_center" data-bind="customScrollbar: {x: false}">
-						<div class="scroll-inner">
-							<!-- ko if: searchItems().count === 0 || searchItems().count === undefined -->
+				<div class="panel_center" data-bind="customScrollbar: {x: false}">
+					<div class="scroll-inner">
+						<div class="items_list files_list">
+							<!-- ko if: searchResultCount() === 0 -->
 								<!-- ko if: !isSearchInProgress()-->
 								<span class="list_notification" data-bind="i18n: {'key': '%MODULENAME%/INFO_NO_ITEMS_FOUND'}"></span>
 								<!-- /ko -->
@@ -23,44 +25,39 @@
 								<span class="list_notification" data-bind="i18n: {'key': '%MODULENAME%/INFO_SEARCH_IN_PROGRESS'}"></span>
 								<!-- /ko -->
 							<!-- /ko -->
-
-							<!-- ko if: searchItems().count > 0 -->
-								<!-- ko foreach: storages -->
-									<!-- ko if: $parent.searchItems()['storages'][type].length > 0 -->
-										<!-- ko if: type === 'repo' -->
-										<div data-bind="text: name" style="padding: 14px 16px 14px 14px; font-size: 20px;"></div>
-										<!-- /ko -->
+							
+							<!-- ko foreach: { data: searchItems().Storages, as: 'storage' } -->
+								<!-- ko foreach: storage.items -->
+									<!-- ko if: $data.items === undefined -->
+									<div class="item">
+										<span class="icon" data-bind="attr: { class: 'icon ' + type }"></span>
+										<span class="link" data-bind="click: $parents[1].bindOpenLink, text: repoName + path"></span>
+										(<span class="size" data-bind="text: size"></span>)
+									</div>
 									<!-- /ko -->
-									<!-- ko foreach: $parent.searchItems()['storages'][type] -->
-										<!-- ko if: $parent.type === 'repo' -->
-										<div class="item" style="border-bottom: 1px solid #e8e8e8; padding: 14px 16px 14px 14px;">
-											<a data-bind="attr: { href: url, target:'_blank'}">
-												<span class="path" data-bind="text: repoName + path"></span>
-											</a>
-										</div>
-										<!-- /ko -->
-										<!-- ko if: $parent.type !== 'repo' && items.length > 0 -->
-											<div data-bind="text: $parent.name + ' ' + user" style="padding: 14px 16px 14px 14px; font-size: 20px;"></div>
-											<!-- ko foreach: items -->
-											<div class="item" style="border-bottom: 1px solid #e8e8e8; padding: 14px 16px 14px 14px;">
-												<a data-bind="attr: { href: url, target:'_blank'}">
-													<span class="path" data-bind="text: repoName + path"></span>
-												</a>
-											</div>
-											<!-- /ko -->
-										<!-- /ko -->
+
+									<!-- ko if: $data.items !== undefined -->
+									<div class="sub-header" data-bind="text: storage.label + ' ' + $data.email"></div>
+									<!-- ko foreach: { data: $data.items } -->
+									<div class="item">
+										<span class="icon" data-bind="attr: { class: 'icon ' + type }"></span>
+										<span class="link" data-bind="click: $parents[2].bindOpenLink, text: repoName + path"></span>
+										(<span class="size" data-bind="text: size"></span>)
+									</div>
+									<!-- /ko -->
 									<!-- /ko -->
 								<!-- /ko -->
 							<!-- /ko -->
 						</div>
 					</div>
-					<div class="panel_bottom">
-						<div class="buttons">
-							<span class="button secondary_button" data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_CLOSE'}, click: closePopup"></span>
-						</div>
+				</div>
+				<div class="panel_bottom">
+					<div class="buttons">
+						<span class="button secondary_button" data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_CLOSE'}, click: closePopup"></span>
 					</div>
 				</div>
 			</div>
+		</div>
 	</div>
 
 	<span class="helper"></span>
