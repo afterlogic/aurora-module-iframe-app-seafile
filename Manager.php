@@ -597,8 +597,8 @@ class Manager extends \Aurora\System\Managers\AbstractManager
             }
             $response = $client->request('GET', "$sSeafileUrl/api2/repos/", [
                 'headers' => [
-                  'accept' => 'application/json',
-                  'authorization' => "Bearer $userToken",
+                    'accept' => 'application/json',
+                    'authorization' => "Bearer $userToken",
                 ],
             ]);
 
@@ -641,7 +641,7 @@ class Manager extends \Aurora\System\Managers\AbstractManager
         $result = ['Storages' => [
             'repo' => [],
             'srepo' => [],
-            'grepo' => []
+            'grepo' => [],
         ]];
         $sSeafileUrl = $this->oModule->oModuleSettings->Url;
 
@@ -664,22 +664,22 @@ class Manager extends \Aurora\System\Managers\AbstractManager
 
                 if ($library->type === 'repo') {
                     $result['Storages'][$library->type] = array_merge(
-                        $result['Storages'][$library->type], 
-                        $searchResult
+                        $result['Storages'][$library->type],
+                        $searchResult,
                     );
-                } else { 
+                } else {
                     if ($library->type === 'srepo') {
                         $owner = $library->owner_contact_email;
                     } elseif ($library->type === 'grepo') {
                         $owner = $library->share_from_contact_email;
                     }
-                    if (count($searchResult) > 0) {
+                    if (isset($owner) && count($searchResult) > 0) {
                         if (!isset($result['Storages'][$library->type][$owner])) {
                             $result['Storages'][$library->type][$owner] = [];
                         }
                         $result['Storages'][$library->type][$owner] = array_merge(
-                            $result['Storages'][$library->type][$owner], 
-                            $searchResult
+                            $result['Storages'][$library->type][$owner],
+                            $searchResult,
                         );
                     }
                 }
