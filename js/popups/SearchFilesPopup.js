@@ -6,7 +6,9 @@ const
 	Utils = require('%PathToCoreWebclientModule%/js/utils/Common.js'),
 	CAbstractPopup = require('%PathToCoreWebclientModule%/js/popups/CAbstractPopup.js'),
 	Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js'),
-	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js')
+	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
+
+	Settings = require('modules/%ModuleName%/js/Settings.js')
 ;
 
 /**
@@ -54,9 +56,6 @@ CSearchFilesPopup.prototype.onBind = function ()
 
 CSearchFilesPopup.prototype.onOpen = function (fCallback)
 {
-	console.log(arguments)
-	// this.searchInput('')
-	// this.resetSearchResults()
 	if (_.isFunction(fCallback))
 	{
 		this.fCallback = fCallback;
@@ -65,7 +64,6 @@ CSearchFilesPopup.prototype.onOpen = function (fCallback)
 
 CSearchFilesPopup.prototype.openLink = function (item)
 {
-	console.log('openLink', this, item)
 	this.fCallback(item.url)
 	this.closePopup()
 }
@@ -106,20 +104,29 @@ CSearchFilesPopup.prototype.onSearchResponse = function (oResponse, oRequest)
 
 		const storages = oResponse.Result.Storages
 		oResponse.Result.Storages = []
+		
 		for (const storageName in storages) {
 			if (storageName === 'repo') {
+				const items = storages[storageName].map((item) => {
+					item.icon = Settings.Url + (item.type === 'folder' ? '/media/img/folder-192.png' : '/media/img/file/192/file.png')
+					return item
+				})
 				oResponse.Result.Storages.push({
 					'name': storageName,
 					'label': this.storageLabels[storageName] ?? '',
-					'items':  storages[storageName]
+					'items': items
 				});
 			} else {
 				const users = storages[storageName]
 				const userList = []
 				for (const userName in users) {
+					const items = users[userName].map((item) => {
+						item.icon = Settings.Url + (item.type === 'folder' ? '/media/img/folder-192.png' : '/media/img/file/192/file.png')
+						return item
+					})
 					userList.push({
 						email: userName,
-						items: users[userName]
+						items: items
 					});
 				}
 

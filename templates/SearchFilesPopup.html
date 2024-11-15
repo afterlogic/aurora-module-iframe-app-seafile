@@ -30,9 +30,8 @@
 								<!-- ko foreach: storage.items -->
 									<!-- ko if: $data.items === undefined -->
 									<div class="item">
-										<span class="icon" data-bind="attr: { class: 'icon ' + type }"></span>
+										<span class="icon" data-bind="attr: { class: 'icon ' + type }, style: { 'background-image': 'url(' + icon + ')' }"></span>
 										<span class="link" data-bind="click: $parents[1].bindOpenLink, text: repoName + path"></span>
-										(<span class="size" data-bind="text: size"></span>)
 									</div>
 									<!-- /ko -->
 
@@ -40,9 +39,8 @@
 									<div class="sub-header" data-bind="text: storage.label + ' ' + $data.email"></div>
 									<!-- ko foreach: { data: $data.items } -->
 									<div class="item">
-										<span class="icon" data-bind="attr: { class: 'icon ' + type }"></span>
+										<span class="icon" data-bind="attr: { class: 'icon ' + type }, style: { 'background-image': 'url(' + icon + ')' }"></span>
 										<span class="link" data-bind="click: $parents[2].bindOpenLink, text: repoName + path"></span>
-										(<span class="size" data-bind="text: size"></span>)
 									</div>
 									<!-- /ko -->
 									<!-- /ko -->
