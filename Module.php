@@ -373,7 +373,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
     {
         \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
 
-        $oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserWithoutRoleCheck($UserId);
+        $oUser = \Aurora\Api::getUserById($UserId);
         if ($oUser) {
             $sEmail = $oUser->getExtendedProp(self::GetName() . '::Email');
 
@@ -413,7 +413,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
         $bResult = false;
 
-        $oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserWithoutRoleCheck($UserId);
+        $oUser = \Aurora\Api::getUserById($UserId);
         if ($oUser) {
             $this->updateEnabledForEntity($oUser, $EnableModule);
 
@@ -491,7 +491,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
         $mResult = false;
 
-        $oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserWithoutRoleCheck($UserId);
+        $oUser = \Aurora\Api::getUserById($UserId);
         if ($oUser) {
             $mResult = \Aurora\System\Utils::DecryptValue($oUser->getExtendedProp(self::GetName() . '::Password'));
         }
@@ -513,7 +513,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
         $mResult = false;
 
-        $oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserWithoutRoleCheck($UserId);
+        $oUser = \Aurora\Api::getUserById($UserId);
 
         if ($oUser && empty($oUser->getExtendedProp(self::GetName() . '::Email'))) {
             $sPassword = \Illuminate\Support\Str::random(10);
