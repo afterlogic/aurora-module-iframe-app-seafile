@@ -26,7 +26,7 @@ function getSeafileResponse(url, callback, postData = false) {
 		const result = status === 200 && response && response.Result;
 		let parsedResult = result ? JSON.parse(result) : result;
 		if (parsedResult && parsedResult.error_msg) {
-			Screens.showError(parsedResult.error_msg);
+			Screens.showError(TextUtils.stripTags(parsedResult.error_msg));
 			parsedResult = null;
 		} else if (!parsedResult && typeof parsedResult !== 'string') {
 			Api.showErrorByCode(response);
