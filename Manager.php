@@ -31,7 +31,7 @@ class Manager extends \Aurora\System\Managers\AbstractManager
      */
     private $sUserAuthToken;
 
-    public function __construct(\Aurora\System\Module\AbstractModule $oModule = null)
+    public function __construct(?\Aurora\System\Module\AbstractModule $oModule = null)
     {
         parent::__construct($oModule);
     }
